@@ -1,4 +1,4 @@
-import { Chars, BufferEncoder, Converter, validate } from "./bufferbase";
+import { Chars, BufferEncoder, Converter, Validator } from "./bufferbase";
 
 // Example buffer
 const bytes = Buffer.from("Hello, World!", "utf8");
@@ -17,7 +17,7 @@ const base64encoded = converter_58to64.convert(base58encoded);
 
 // Validating Base64
 const validatorB64 = new Validator(Chars.Base64_URL_SAFE);
-const isBase64 = validator.validate(base64encoded);
+const isBase64 = validatorB64.validate(base64encoded);
 
 // Decoding Base64
 const decoder = new BufferEncoder(Chars.Base64_URL_SAFE);
