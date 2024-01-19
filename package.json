@@ -1,0 +1,30 @@
+{
+  "name": "bufferbase",
+  "version": "1.0.0",
+  "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
+  "main": "./cjs/index.js",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "sideEffects": false,
+  "exports": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "node --loader tsx --test src/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/misebox/bufferbase.git"
+  },
+  "author": "misebox",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/misebox/bufferbase/issues"
+  },
+  "homepage": "https://github.com/misebox/bufferbase#readme"
+}
