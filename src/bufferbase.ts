@@ -1,7 +1,7 @@
 /**
  * A collection of common bases.
  */
-export const Chars: { readonly [key: string]: string } = {
+export const Chars = {
   Decimal: "0123456789",
   Base16: "0123456789ABCDEF",
   Base32: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",

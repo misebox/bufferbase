@@ -38,9 +38,8 @@ test("anybase", async (t) => {
   });
 
   await t.test("encode and decode various chars correctly", () => {
-    const variousCharTables = Object.keys(Chars);
-    for (const charTable of variousCharTables) {
-      const encoder = new BufferEncoder(Chars[charTable]);
+    for (const charTable of Object.values(Chars)) {
+      const encoder = new BufferEncoder(charTable);
       const buffer = Buffer.from("Hello, World!", "utf8");
 
       const encoded = encoder.encode(buffer);
