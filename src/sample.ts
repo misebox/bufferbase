@@ -17,7 +17,7 @@ const base64encoded = converter_58to64.convert(base58encoded);
 
 // Validating Base64
 const validatorB64 = new Validator(Chars.Base64_URL_SAFE);
-const isBase64 = validatorB64.validate(base64encoded);
+const isValidAsBase64 = validatorB64.validate(base64encoded);
 
 // Decoding Base64
 const decoder = new BufferEncoder(Chars.Base64_URL_SAFE);
@@ -28,16 +28,16 @@ console.table({
   base32encoded,
   base58encoded,
   base64encoded,
-  isBase64,
+  isValidAsBase64,
   decoded: decoded.toString("utf8"),
 });
-// ┌───────────────┬─────────────────────────┐
-// │    (index)    │         Values          │
-// ├───────────────┼─────────────────────────┤
-// │     bytes     │     'Hello, World!'     │
-// │ base32encoded │ '4GSBCDHQJR82QDXS6RS11' │
-// │ base58encoded │  '72k1xXWG59fYdzSNoA'   │
-// │ base64encoded │  'BIZWxsbywgV29ybGQh'   │
-// │    decoded    │     'Hello, World!'     │
-// │   isBase64    │          true           │
-// └───────────────┴─────────────────────────┘
+// ┌─────────────────┬─────────────────────────┐
+// │ (index)         │ Values                  │
+// ├─────────────────┼─────────────────────────┤
+// │ bytes           │ 'Hello, World!'         │
+// │ base32encoded   │ '4GSBCDHQJR82QDXS6RS11' │
+// │ base58encoded   │ '72k1xXWG59fYdzSNoA'    │
+// │ base64encoded   │ 'BIZWxsbywgV29ybGQh'    │
+// │ isValidAsBase64 │ true                    │
+// │ decoded         │ 'Hello, World!'         │
+// └─────────────────┴─────────────────────────┘
