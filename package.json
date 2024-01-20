@@ -1,6 +1,6 @@
 {
   "name": "bufferbase",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
   "type": "module",
   "sideEffects": false,
