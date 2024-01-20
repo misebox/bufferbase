@@ -1,6 +1,6 @@
 {
   "name": "bufferbase",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
   "main": "./cjs/index.js",
   "module": "./esm/index.js",
@@ -21,6 +21,21 @@
     "type": "git",
     "url": "git+https://github.com/misebox/bufferbase.git"
   },
+  "keywords": [
+    "number",
+    "encode",
+    "convert",
+    "decimal",
+    "base",
+    "base16",
+    "base32",
+    "crockford",
+    "base36",
+    "base58",
+    "base64",
+    "Ascii85",
+    "base85"
+  ],
   "author": "misebox",
   "license": "ISC",
   "bugs": {
