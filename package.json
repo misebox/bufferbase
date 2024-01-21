@@ -1,6 +1,6 @@
 {
   "name": "bufferbase",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
   "type": "module",
   "sideEffects": false,
@@ -22,6 +22,7 @@
     "type": "git",
     "url": "git+https://github.com/misebox/bufferbase.git"
   },
+  "files": ["dist", "src"],
   "keywords": [
     "number",
     "encode",
