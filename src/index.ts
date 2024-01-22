@@ -1,4 +1,5 @@
 export {
+  Chars,
   BufferEncoder,
   Converter,
   InvalidCharacterError,

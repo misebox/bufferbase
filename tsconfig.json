@@ -9,11 +9,13 @@
         "skipLibCheck": true,
         "allowJs": false,
         "types": [
-            "node",
+            "node"
         ],
         "declaration": true,
         "pretty": true,
         "newLine": "lf",
-        "outDir": "./dist",
+        "outDir": "./dist"
     },
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules", "**/*.spec.ts"]
 }

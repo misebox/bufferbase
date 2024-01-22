@@ -1,8 +1,9 @@
 {
   "name": "bufferbase",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
   "type": "module",
+  "types": "./dist/index.d.ts",
   "sideEffects": false,
   "exports": "./dist/index.js",
   "scripts": {
