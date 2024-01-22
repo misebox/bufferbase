@@ -3,14 +3,10 @@
         "target": "esnext",
         "module": "esnext",
         "moduleResolution": "node",
-        "lib": ["esnext"],
         "esModuleInterop": true,
         "strict": true,
         "skipLibCheck": true,
         "allowJs": false,
-        "types": [
-            "node"
-        ],
         "declaration": true,
         "pretty": true,
         "newLine": "lf",
