@@ -1,6 +1,6 @@
 {
   "name": "bufferbase",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
   "type": "module",
   "main": "./dist/index.js",
@@ -16,15 +16,16 @@
     "@types/node": "^20.11.5",
     "ts-loader": "^9.5.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
-    "webpack": "^5.89.0",
-    "webpack-cli": "^5.1.4"
+    "typescript": "^5.3.3"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/misebox/bufferbase.git"
   },
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "keywords": [
     "number",
     "encode",
