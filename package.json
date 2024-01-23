@@ -1,6 +1,6 @@
 {
   "name": "bufferbase",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
   "type": "module",
   "types": "./dist/index.d.ts",
