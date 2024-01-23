@@ -1,4 +1,4 @@
-import { Chars, BufferEncoder, Converter, Validator } from "./bufferbase";
+import { Chars, BufferEncoder, Converter, Validator } from "./bufferbase.js";
 
 // Example buffer
 const bytes = Buffer.from("Hello, World!", "utf8");
