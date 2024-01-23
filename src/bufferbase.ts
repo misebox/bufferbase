@@ -2,29 +2,30 @@
  * A collection of common bases.
  */
 export const Chars = {
-  Decimal: "0123456789",
-  Base16: "0123456789ABCDEF",
-  Base32: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
-  Base32Crockford: "0123456789ABCDEFGHJKMNPQRSTVWXYZ",
-  Base36: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-  Base58: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
+  Decimal: '0123456789',
+  Base16: '0123456789ABCDEF',
+  Base32: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',
+  Base32Crockford: '0123456789ABCDEFGHJKMNPQRSTVWXYZ',
+  Base36: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  Base52: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+  Base58: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
   Base64_STD:
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
   Base64_URL_SAFE:
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_',
   Base64_XML_NMTOKEN:
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._",
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._',
   Base64_XML_NAME:
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_:",
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_:',
   Ascii85:
-    "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstu",
+    '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstu',
   Base85:
-    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+-;<=>?@^_`{|}~",
-  Z85: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#",
+    '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+-;<=>?@^_`{|}~',
+  Z85: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#',
 };
 
 export class InvalidCharacterError extends Error {
-  message = "Invalid character found";
+  message = 'Invalid character found';
 }
 /**
  * Encodes and decodes buffers to and from a base.
@@ -59,7 +60,7 @@ export class BufferEncoder {
     return result
       .reverse()
       .map((index) => this.baseChars[index])
-      .join("");
+      .join('');
   }
 
   /**
