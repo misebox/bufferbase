@@ -22,7 +22,7 @@ npm install bufferbase
 
 ## Usage
 
-See [src/sample.ts](/src/sample.ts)
+See [src/example.ts](/src/example.ts)
 
 
 ## Contributing
