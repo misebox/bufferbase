@@ -1,7 +1,7 @@
-import { Chars, BufferEncoder, Converter, Validator } from "./bufferbase.js";
+import { Chars, BufferEncoder, Converter, Validator } from './bufferbase.js';
 
 // Example buffer
-const bytes = Buffer.from("Hello, World!", "utf8");
+const bytes = Buffer.from('Hello, World!', 'utf8');
 
 // Encoding buffer to Base32
 const encoder = new BufferEncoder(Chars.Base32Crockford);
@@ -24,12 +24,12 @@ const decoder = new BufferEncoder(Chars.Base64_URL_SAFE);
 const decoded = decoder.decode(base64encoded);
 
 console.table({
-  bytes: bytes.toString("utf8"),
+  bytes: bytes.toString('utf8'),
   base32encoded,
   base58encoded,
   base64encoded,
   isValidAsBase64,
-  decoded: decoded.toString("utf8"),
+  decoded: decoded.toString('utf8'),
 });
 // ┌─────────────────┬─────────────────────────┐
 // │ (index)         │ Values                  │

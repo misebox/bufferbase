@@ -27,6 +27,11 @@ export const Chars = {
 export class InvalidCharacterError extends Error {
   message = 'Invalid character found';
 }
+
+export class BufferSizeError extends Error {
+  message = 'Buffer size exceeds specified size';
+}
+
 /**
  * Encodes and decodes buffers to and from a base.
  */
@@ -66,7 +71,7 @@ export class BufferEncoder {
   /**
    * Decodes a string to a buffer.
    */
-  decode(encoded: string): Buffer {
+  decode(encoded: string, bufferSize = undefined): Buffer {
     let result = Buffer.alloc(0);
     for (const char of encoded) {
       const value = this.baseChars.indexOf(char);
@@ -85,7 +90,18 @@ export class BufferEncoder {
       }
       result = tempResult;
     }
-    return result.reverse();
+    // buffer size
+    if (bufferSize && result.length < bufferSize) {
+      result = Buffer.concat([
+        result,
+        Buffer.from(Array(bufferSize - result.length).fill(0)),
+      ]);
+    }
+    if (bufferSize && result.length !== bufferSize) {
+      throw new BufferSizeError();
+    }
+    result.reverse();
+    return result;
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "bufferbase",
-  "version": "1.1.13",
+  "version": "1.2.0",
   "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
   "type": "module",
   "types": "./dist/index.d.ts",
@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
-    "test": "node --loader tsx --test src/*.test.ts"
+    "example": "tsx src/example.ts",
+    "test": "tsx --test src/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^20.11.5",
