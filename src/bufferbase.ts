@@ -71,7 +71,7 @@ export class BufferEncoder {
   /**
    * Decodes a string to a buffer.
    */
-  decode(encoded: string, bufferSize = undefined): Buffer {
+  decode(encoded: string, bufferSize?: number): Buffer {
     let result = Buffer.alloc(0);
     for (const char of encoded) {
       const value = this.baseChars.indexOf(char);
