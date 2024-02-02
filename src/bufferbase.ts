@@ -97,7 +97,7 @@ export class BufferEncoder {
         Buffer.from(Array(bufferSize - result.length).fill(0)),
       ]);
     }
-    if (bufferSize && result.length !== bufferSize) {
+    if (bufferSize && result.length > bufferSize) {
       throw new BufferSizeError();
     }
     result.reverse();
