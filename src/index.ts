@@ -5,4 +5,4 @@ export {
   InvalidCharacterError,
   Validator,
   validate,
-} from "./bufferbase.js";
+} from './bufferbase.js';
