@@ -49,11 +49,7 @@ export function encode(buffer: Buffer, base: BaseName | string): string {
  * const fixedSize = decode('9Ajdvz', 'base58', { size: 32 });
  * ```
  */
-export function decode(
-  encoded: string,
-  base: BaseName | string,
-  options?: DecodeOptions
-): Buffer {
+export function decode(encoded: string, base: BaseName | string, options?: DecodeOptions): Buffer {
   return getCodec(base).decode(encoded, options);
 }
 
@@ -70,11 +66,7 @@ export function decode(
  * const base64 = convert('9Ajdvz', 'base58', 'base64url');
  * ```
  */
-export function convert(
-  input: string,
-  from: BaseName | string,
-  to: BaseName | string
-): string {
+export function convert(input: string, from: BaseName | string, to: BaseName | string): string {
   const fromCodec = getCodec(from);
   const toCodec = getCodec(to);
   return fromCodec.convertTo(toCodec, input);

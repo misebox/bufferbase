@@ -3,9 +3,7 @@
  */
 export class InvalidCharacterError extends Error {
   constructor(char?: string) {
-    const message = char
-      ? `Invalid character found: '${char}'`
-      : 'Invalid character found';
+    const message = char ? `Invalid character found: '${char}'` : 'Invalid character found';
     super(message);
     this.name = 'InvalidCharacterError';
   }
