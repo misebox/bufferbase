@@ -68,7 +68,6 @@ test('BufferEncoder', async (t) => {
       const encoded = encoder.encode(buffer);
       const decoded = encoder.decode(encoded, 8);
       const result = decoded.readBigInt64BE();
-      console.log(encoded, result);
       assert.strictEqual(result, num);
     }
   });
@@ -76,6 +75,6 @@ test('BufferEncoder', async (t) => {
     assert.throws(() => {
       const encoder = new BufferEncoder(Chars.Base58);
       encoder.decode('InvalidString!');
-    }, new Error('Invalid character found'));
+    }, /Invalid character found/);
   });
 });
