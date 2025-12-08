@@ -1,6 +1,22 @@
 import { Buffer } from 'node:buffer';
 
 /**
+ * Input type accepted by encode functions.
+ *
+ * Supports both Node.js `Buffer` and standard `Uint8Array` for browser compatibility.
+ *
+ * @example
+ * ```typescript
+ * // Node.js Buffer
+ * encode(Buffer.from('Hello'), 'base58');
+ *
+ * // Browser Uint8Array
+ * encode(new Uint8Array([72, 101, 108, 108, 111]), 'base58');
+ * ```
+ */
+export type BufferLike = Buffer | Uint8Array;
+
+/**
  * Supported base encoding names.
  *
  * These names can be used with the function API:
@@ -81,10 +97,10 @@ export interface ICodec {
 
   /**
    * Encodes a buffer to a base-encoded string.
-   * @param buffer - The buffer to encode
+   * @param buffer - The buffer or Uint8Array to encode
    * @returns Base-encoded string
    */
-  encode(buffer: Buffer): string;
+  encode(buffer: BufferLike): string;
 
   /**
    * Decodes a base-encoded string to a buffer.

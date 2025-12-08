@@ -1,5 +1,4 @@
-import { Buffer } from 'node:buffer';
-import type { BaseName, DecodeOptions } from './types.js';
+import type { BaseName, DecodeOptions, BufferLike } from './types.js';
 import { Codec } from './codec.js';
 import { resolveChars } from './bases.js';
 
@@ -22,16 +21,20 @@ function getCodec(base: BaseName | string): Codec {
 /**
  * Encodes a buffer to a base-encoded string.
  *
- * @param buffer - Buffer to encode
+ * @param buffer - Buffer or Uint8Array to encode
  * @param base - Base name (e.g., 'base58') or custom character set
  * @returns Encoded string
  *
  * @example
  * ```typescript
+ * // Node.js Buffer
  * const encoded = encode(Buffer.from('Hello'), 'base58');
+ *
+ * // Browser Uint8Array
+ * const encoded = encode(new Uint8Array([72, 101, 108, 108, 111]), 'base58');
  * ```
  */
-export function encode(buffer: Buffer, base: BaseName | string): string {
+export function encode(buffer: BufferLike, base: BaseName | string): string {
   return getCodec(base).encode(buffer);
 }
 

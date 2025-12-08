@@ -1,6 +1,17 @@
 import { Buffer } from 'node:buffer';
-import type { ICodec, DecodeOptions } from './types.js';
+import type { ICodec, DecodeOptions, BufferLike } from './types.js';
 import { InvalidCharacterError, BufferSizeError } from './errors.js';
+
+/**
+ * Converts a BufferLike (Buffer or Uint8Array) to a Buffer.
+ * @internal
+ */
+function toBuffer(input: BufferLike): Buffer {
+  if (Buffer.isBuffer(input)) {
+    return input;
+  }
+  return Buffer.from(input);
+}
 
 /**
  * Codec for encoding and decoding buffers to/from a specific base.
@@ -45,17 +56,18 @@ export class Codec implements ICodec {
    * Leading zero bytes in the buffer are preserved as the first character
    * of the encoding alphabet (e.g., '1' for Base58).
    *
-   * @param buffer - The buffer to encode
+   * @param input - The buffer or Uint8Array to encode
    * @returns Base-encoded string
    *
    * @example
    * ```typescript
    * const codec = Codecs.base58;
    * codec.encode(Buffer.from('Hello')); // '9Ajdvzr'
-   * codec.encode(Buffer.from([0, 0, 1])); // '112' (preserves leading zeros)
+   * codec.encode(new Uint8Array([0, 0, 1])); // '112' (preserves leading zeros)
    * ```
    */
-  encode(buffer: Buffer): string {
+  encode(input: BufferLike): string {
+    const buffer = toBuffer(input);
     if (buffer.length === 0) {
       return '';
     }
