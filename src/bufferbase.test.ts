@@ -74,4 +74,25 @@ describe('BufferEncoder', () => {
       encoder.decode('InvalidString!');
     }).toThrow(/Invalid character found/);
   });
+
+  test('encodes Uint8Array correctly', () => {
+    const encoder = new BufferEncoder(Chars.Base58);
+    const uint8Array = new Uint8Array([72, 101, 108, 108, 111]); // 'Hello'
+    const buffer = Buffer.from('Hello', 'utf8');
+
+    const encodedFromUint8 = encoder.encode(uint8Array);
+    const encodedFromBuffer = encoder.encode(buffer);
+
+    expect(encodedFromUint8).toBe(encodedFromBuffer);
+  });
+
+  test('encodes Uint8Array with leading zeros correctly', () => {
+    const encoder = new BufferEncoder(Chars.Base58);
+    const uint8Array = new Uint8Array([0, 0, 1, 2, 3]);
+
+    const encoded = encoder.encode(uint8Array);
+    const decoded = encoder.decode(encoded);
+
+    expect(Array.from(decoded)).toEqual([0, 0, 1, 2, 3]);
+  });
 });

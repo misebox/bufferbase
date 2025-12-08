@@ -216,6 +216,72 @@ describe('Error handling', () => {
   });
 });
 
+describe('Uint8Array support', () => {
+  test('encode Uint8Array with function API', () => {
+    const uint8Array = new Uint8Array([72, 101, 108, 108, 111]); // 'Hello'
+    const buffer = Buffer.from('Hello', 'utf8');
+
+    const encodedFromUint8 = encode(uint8Array, 'base58');
+    const encodedFromBuffer = encode(buffer, 'base58');
+
+    expect(encodedFromUint8).toBe(encodedFromBuffer);
+  });
+
+  test('encode Uint8Array with Codecs object', () => {
+    const uint8Array = new Uint8Array([72, 101, 108, 108, 111]); // 'Hello'
+    const buffer = Buffer.from('Hello', 'utf8');
+
+    const encodedFromUint8 = Codecs.base58.encode(uint8Array);
+    const encodedFromBuffer = Codecs.base58.encode(buffer);
+
+    expect(encodedFromUint8).toBe(encodedFromBuffer);
+  });
+
+  test('encode empty Uint8Array', () => {
+    const uint8Array = new Uint8Array(0);
+    const encoded = encode(uint8Array, 'base58');
+    expect(encoded).toBe('');
+  });
+
+  test('encode Uint8Array with leading zeros', () => {
+    const uint8Array = new Uint8Array([0, 0, 1, 2, 3]);
+    const encoded = encode(uint8Array, 'base58');
+    const decoded = decode(encoded, 'base58');
+    expect(Array.from(decoded)).toEqual([0, 0, 1, 2, 3]);
+  });
+
+  test('encode Uint8Array all zeros', () => {
+    const uint8Array = new Uint8Array([0, 0, 0]);
+    const encoded = encode(uint8Array, 'base58');
+    const decoded = decode(encoded, 'base58');
+    expect(Array.from(decoded)).toEqual([0, 0, 0]);
+  });
+
+  test('encode Uint8Array across all base encodings', () => {
+    const uint8Array = new Uint8Array([1, 2, 3, 4, 5]);
+    const buffer = Buffer.from([1, 2, 3, 4, 5]);
+
+    const baseNames = [
+      'decimal', 'base16', 'hex', 'base32', 'base32crockford',
+      'base36', 'base52', 'base58', 'base64', 'base64url',
+      'ascii85', 'base85', 'z85',
+    ] as const;
+
+    for (const base of baseNames) {
+      const encodedFromUint8 = encode(uint8Array, base);
+      const encodedFromBuffer = encode(buffer, base);
+      expect(encodedFromUint8).toBe(encodedFromBuffer);
+    }
+  });
+
+  test('custom codec with Uint8Array', () => {
+    const binary = createCodec('01');
+    const uint8Array = new Uint8Array([5]);
+    const encoded = binary.encode(uint8Array);
+    expect(encoded).toBe('101');
+  });
+});
+
 describe('Backward compatibility', () => {
   test('BufferEncoder works', async () => {
     const { BufferEncoder, Chars } = await import('./bufferbase.js');

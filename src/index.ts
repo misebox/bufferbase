@@ -1,5 +1,5 @@
 // Types
-export type { BaseName, DecodeOptions, ICodec } from './types.js';
+export type { BaseName, DecodeOptions, ICodec, BufferLike } from './types.js';
 export type { CodecName } from './codecs.js';
 
 // Errors
