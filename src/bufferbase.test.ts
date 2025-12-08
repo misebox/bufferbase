@@ -4,18 +4,15 @@ import test from 'node:test'; // ①
 import assert from 'node:assert';
 
 test('BufferEncoder', async (t) => {
-  await t.test(
-    'encodes and decodes a string correctly with base58chars',
-    () => {
-      const encoder = new BufferEncoder(Chars.Base58);
-      const buffer = Buffer.from('Hello, World!', 'utf8');
+  await t.test('encodes and decodes a string correctly with base58chars', () => {
+    const encoder = new BufferEncoder(Chars.Base58);
+    const buffer = Buffer.from('Hello, World!', 'utf8');
 
-      const encoded = encoder.encode(buffer);
-      const decoded = encoder.decode(encoded);
+    const encoded = encoder.encode(buffer);
+    const decoded = encoder.decode(encoded);
 
-      assert.strictEqual(decoded.toString('utf8'), 'Hello, World!');
-    }
-  );
+    assert.strictEqual(decoded.toString('utf8'), 'Hello, World!');
+  });
 
   await t.test('handles empty buffer correctly', () => {
     const encoder = new BufferEncoder(Chars.Base58);
@@ -68,7 +65,6 @@ test('BufferEncoder', async (t) => {
       const encoded = encoder.encode(buffer);
       const decoded = encoder.decode(encoded, 8);
       const result = decoded.readBigInt64BE();
-      console.log(encoded, result);
       assert.strictEqual(result, num);
     }
   });
@@ -76,6 +72,6 @@ test('BufferEncoder', async (t) => {
     assert.throws(() => {
       const encoder = new BufferEncoder(Chars.Base58);
       encoder.decode('InvalidString!');
-    }, new Error('Invalid character found'));
+    }, /Invalid character found/);
   });
 });

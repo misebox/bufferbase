@@ -5,7 +5,7 @@
     "outDir": "./dist/esm",
     "esModuleInterop": true,
     "strict": true,
-
+    "types": ["node"],
     "verbatimModuleSyntax": true,
     "target": "es2020",
     "declaration": true,

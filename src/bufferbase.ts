@@ -1,112 +1,42 @@
 /**
- * A collection of common bases.
+ * @deprecated Use the new API instead:
+ * - `encode(buffer, 'base58')` or `base58.encode(buffer)`
+ * - `decode(encoded, 'base58')` or `base58.decode(encoded)`
+ * - `convert(input, 'base58', 'base64')` or `base58.convertTo(base64, input)`
+ * - `validate(input, 'base58')` or `base58.validate(input)`
  */
-export const Chars = {
-  Decimal: '0123456789',
-  Base16: '0123456789ABCDEF',
-  Base32: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',
-  Base32Crockford: '0123456789ABCDEFGHJKMNPQRSTVWXYZ',
-  Base36: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-  Base52: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-  Base58: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
-  Base64_STD:
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-  Base64_URL_SAFE:
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_',
-  Base64_XML_NMTOKEN:
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._',
-  Base64_XML_NAME:
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_:',
-  Ascii85:
-    '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstu',
-  Base85:
-    '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+-;<=>?@^_`{|}~',
-  Z85: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#',
-};
 
-export class InvalidCharacterError extends Error {
-  message = 'Invalid character found';
-}
+import { Buffer } from 'node:buffer';
+import { Codec } from './codec.js';
+import { InvalidCharacterError, BufferSizeError } from './errors.js';
 
-export class BufferSizeError extends Error {
-  message = 'Buffer size exceeds specified size';
-}
+// Re-export Chars for backward compatibility
+export { Chars } from './bases.js';
+
+// Re-export errors
+export { InvalidCharacterError, BufferSizeError };
 
 /**
- * Encodes and decodes buffers to and from a base.
+ * @deprecated Use `Codec` or `createCodec()` instead.
  */
 export class BufferEncoder {
-  constructor(private baseChars: string) {}
+  private codec: Codec;
 
-  /**
-   * Encodes a buffer to a string.
-   */
-  encode(buffer: Buffer): string {
-    let result = [];
-    for (const byte of buffer) {
-      let carry = byte;
-      for (let j = 0; j < result.length; j++) {
-        carry += result[j] * 256;
-        result[j] = carry % this.baseChars.length;
-        carry = Math.floor(carry / this.baseChars.length);
-      }
-      while (carry > 0) {
-        result.push(carry % this.baseChars.length);
-        carry = Math.floor(carry / this.baseChars.length);
-      }
-    }
-    for (const byte of buffer) {
-      if (byte === 0) {
-        result.push(0);
-      } else {
-        break;
-      }
-    }
-    return result
-      .reverse()
-      .map((index) => this.baseChars[index])
-      .join('');
+  constructor(private baseChars: string) {
+    this.codec = new Codec(baseChars);
   }
 
-  /**
-   * Decodes a string to a buffer.
-   */
+  encode(buffer: Buffer): string {
+    return this.codec.encode(buffer);
+  }
+
   decode(encoded: string, bufferSize?: number): Buffer {
-    let result = Buffer.alloc(0);
-    for (const char of encoded) {
-      const value = this.baseChars.indexOf(char);
-      if (value === -1) throw new InvalidCharacterError();
-      let carry = value;
-      let tempResult = Buffer.alloc(result.length);
-      let i;
-      for (i = 0; i < result.length; i++) {
-        carry += result[i] * this.baseChars.length;
-        tempResult[i] = carry % 256;
-        carry = Math.floor(carry / 256);
-      }
-      while (carry > 0) {
-        tempResult = Buffer.concat([tempResult, Buffer.from([carry % 256])]);
-        carry = Math.floor(carry / 256);
-      }
-      result = tempResult;
-    }
-    // buffer size
-    if (bufferSize && result.length < bufferSize) {
-      result = Buffer.concat([
-        result,
-        Buffer.from(Array(bufferSize - result.length).fill(0)),
-      ]);
-    }
-    if (bufferSize && result.length > bufferSize) {
-      throw new BufferSizeError();
-    }
-    result.reverse();
-    return result;
+    return this.codec.decode(encoded, bufferSize !== undefined ? { size: bufferSize } : undefined);
   }
 }
 
 /**
- * Creates a converter function that can convert between two bases.
+ * @deprecated Use `convert()` function or `codec.convertTo()` instead.
  */
 export class Converter {
   decoder: BufferEncoder;
@@ -117,34 +47,29 @@ export class Converter {
     this.encoder = new BufferEncoder(outputBase);
   }
 
-  /**
-   * Converts a string from the input base to the output base.
-   */
   convert(input: string): string {
     return this.encoder.encode(this.decoder.decode(input));
   }
 }
 
+/**
+ * @deprecated Use `validate()` function or `codec.validate()` instead.
+ */
 export class Validator {
-  decorder: BufferEncoder;
+  private codec: Codec;
 
   constructor(inputBase: string) {
-    this.decorder = new BufferEncoder(inputBase);
+    this.codec = new Codec(inputBase);
   }
 
   validate(input: string): boolean {
-    try {
-      this.decorder.decode(input);
-      return true;
-    } catch (e) {
-      if (e instanceof InvalidCharacterError) {
-        return false;
-      }
-      throw e;
-    }
+    return this.codec.validate(input);
   }
 }
 
+/**
+ * @deprecated Use `validate()` from the main module instead.
+ */
 export const validate = (input: string, base: string): boolean => {
   return new Validator(base).validate(input);
 };
