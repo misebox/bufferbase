@@ -1,28 +1,17 @@
-import { Chars, BufferEncoder, Converter, Validator } from './bufferbase.js';
+import { Buffer } from 'node:buffer';
+import { encode, decode, convert, validate, Codecs } from './index.js';
 
 // Example buffer
 const bytes = Buffer.from('Hello, World!', 'utf8');
 
-// Encoding buffer to Base32
-const encoder = new BufferEncoder(Chars.Base32Crockford);
-const base32encoded = encoder.encode(bytes);
+// Using simple function API
+const base32encoded = encode(bytes, 'base32crockford');
+const base58encoded = convert(base32encoded, 'base32crockford', 'base58');
+const base64encoded = convert(base58encoded, 'base58', 'base64url');
+const isValidAsBase64 = validate(base64encoded, 'base64url');
+const decoded = decode(base64encoded, 'base64url');
 
-// Converting Base32 to Base58
-const converter_32to58 = new Converter(Chars.Base32Crockford, Chars.Base58);
-const base58encoded = converter_32to58.convert(base32encoded);
-
-// Converting Base32 to Base58
-const converter_58to64 = new Converter(Chars.Base58, Chars.Base64_URL_SAFE);
-const base64encoded = converter_58to64.convert(base58encoded);
-
-// Validating Base64
-const validatorB64 = new Validator(Chars.Base64_URL_SAFE);
-const isValidAsBase64 = validatorB64.validate(base64encoded);
-
-// Decoding Base64
-const decoder = new BufferEncoder(Chars.Base64_URL_SAFE);
-const decoded = decoder.decode(base64encoded);
-
+console.log('=== Function API ===');
 console.table({
   bytes: bytes.toString('utf8'),
   base32encoded,
@@ -31,13 +20,14 @@ console.table({
   isValidAsBase64,
   decoded: decoded.toString('utf8'),
 });
-// ┌─────────────────┬─────────────────────────┐
-// │ (index)         │ Values                  │
-// ├─────────────────┼─────────────────────────┤
-// │ bytes           │ 'Hello, World!'         │
-// │ base32encoded   │ '4GSBCDHQJR82QDXS6RS11' │
-// │ base58encoded   │ '72k1xXWG59fYdzSNoA'    │
-// │ base64encoded   │ 'BIZWxsbywgV29ybGQh'    │
-// │ isValidAsBase64 │ true                    │
-// │ decoded         │ 'Hello, World!'         │
-// └─────────────────┴─────────────────────────┘
+
+// Using Codecs object
+console.log('\n=== Codecs API ===');
+const encoded = Codecs.base58.encode(bytes);
+const converted = Codecs.base58.convertTo(Codecs.base64url, encoded);
+console.table({
+  original: bytes.toString('utf8'),
+  base58: encoded,
+  base64url: converted,
+  valid: Codecs.base64url.validate(converted),
+});
