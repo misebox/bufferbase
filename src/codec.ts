@@ -4,11 +4,33 @@ import { InvalidCharacterError, BufferSizeError } from './errors.js';
 
 /**
  * Codec for encoding and decoding buffers to/from a specific base.
+ *
+ * Use pre-defined codecs from `Codecs` for common encodings,
+ * or create custom codecs with `createCodec()`.
+ *
+ * @example
+ * ```typescript
+ * import { Codec, Codecs, createCodec } from 'bufferbase';
+ *
+ * // Use pre-defined codec
+ * const encoded = Codecs.base58.encode(Buffer.from('Hello'));
+ *
+ * // Create custom codec
+ * const binary = createCodec('01');
+ * const bits = binary.encode(Buffer.from([5])); // '101'
+ * ```
  */
 export class Codec implements ICodec {
+  /** Character set used for encoding. */
   readonly chars: string;
+
+  /** @internal */
   private readonly charToIndex: Map<string, number>;
 
+  /**
+   * Creates a new codec with the specified character set.
+   * @param chars - The character set to use for encoding/decoding
+   */
   constructor(chars: string) {
     this.chars = chars;
     this.charToIndex = new Map();
@@ -19,6 +41,19 @@ export class Codec implements ICodec {
 
   /**
    * Encodes a buffer to a base-encoded string.
+   *
+   * Leading zero bytes in the buffer are preserved as the first character
+   * of the encoding alphabet (e.g., '1' for Base58).
+   *
+   * @param buffer - The buffer to encode
+   * @returns Base-encoded string
+   *
+   * @example
+   * ```typescript
+   * const codec = Codecs.base58;
+   * codec.encode(Buffer.from('Hello')); // '9Ajdvzr'
+   * codec.encode(Buffer.from([0, 0, 1])); // '112' (preserves leading zeros)
+   * ```
    */
   encode(buffer: Buffer): string {
     if (buffer.length === 0) {
@@ -66,6 +101,22 @@ export class Codec implements ICodec {
 
   /**
    * Decodes a base-encoded string to a buffer.
+   *
+   * Leading characters that represent zero (first char of alphabet)
+   * are converted to leading zero bytes in the result.
+   *
+   * @param encoded - The string to decode
+   * @param options - Decode options
+   * @returns Decoded buffer
+   * @throws {InvalidCharacterError} If the string contains invalid characters
+   * @throws {BufferSizeError} If the result exceeds the specified size
+   *
+   * @example
+   * ```typescript
+   * const codec = Codecs.base58;
+   * codec.decode('9Ajdvzr'); // Buffer('Hello')
+   * codec.decode('9Ajdvzr', { size: 32 }); // Pads to 32 bytes
+   * ```
    */
   decode(encoded: string, options?: DecodeOptions): Buffer {
     if (encoded.length === 0) {
@@ -133,6 +184,17 @@ export class Codec implements ICodec {
 
   /**
    * Validates if a string contains only valid characters for this base.
+   *
+   * This is a fast check that doesn't perform full decoding.
+   *
+   * @param input - The string to validate
+   * @returns `true` if all characters are valid, `false` otherwise
+   *
+   * @example
+   * ```typescript
+   * Codecs.base58.validate('9Ajdvzr'); // true
+   * Codecs.base58.validate('0invalid'); // false ('0' not in Base58)
+   * ```
    */
   validate(input: string): boolean {
     for (const char of input) {
@@ -145,6 +207,19 @@ export class Codec implements ICodec {
 
   /**
    * Converts a string from this base to another base.
+   *
+   * Internally decodes to a buffer, then encodes with the target codec.
+   *
+   * @param target - Target codec to convert to
+   * @param input - The string to convert
+   * @returns String in the target base encoding
+   * @throws {InvalidCharacterError} If the input contains invalid characters
+   *
+   * @example
+   * ```typescript
+   * const base58str = '9Ajdvzr';
+   * const base64str = Codecs.base58.convertTo(Codecs.base64url, base58str);
+   * ```
    */
   convertTo(target: ICodec, input: string): string {
     const buffer = this.decode(input);
@@ -154,6 +229,25 @@ export class Codec implements ICodec {
 
 /**
  * Creates a new codec with the specified character set.
+ *
+ * Use this to create codecs for custom base encodings.
+ * The base is determined by the length of the character set.
+ *
+ * @param chars - The character set to use for encoding/decoding
+ * @returns A new Codec instance
+ *
+ * @example
+ * ```typescript
+ * import { createCodec } from 'bufferbase';
+ *
+ * // Binary codec (base 2)
+ * const binary = createCodec('01');
+ * binary.encode(Buffer.from([5])); // '101'
+ *
+ * // Octal codec (base 8)
+ * const octal = createCodec('01234567');
+ * octal.encode(Buffer.from([255])); // '377'
+ * ```
  */
 export function createCodec(chars: string): Codec {
   return new Codec(chars);

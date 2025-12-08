@@ -21,17 +21,17 @@
     }
   },
   "scripts": {
-    "build": "npm run build:esm && npm run build:cjs && tsconfig-to-dual-package",
+    "build": "bun run build:esm && bun run build:cjs && tsconfig-to-dual-package",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.json",
-    "prepublishOnly": "npm run build",
-    "example": "tsx src/example.ts",
-    "test": "tsx --test src/*.test.ts"
+    "prepublishOnly": "bun run build",
+    "example": "bun src/example.ts",
+    "test": "bun test"
   },
   "devDependencies": {
+    "@types/bun": "^1.1.0",
     "@types/node": "^20.11.5",
     "tsconfig-to-dual-package": "^1.2.0",
-    "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   },
   "repository": {
