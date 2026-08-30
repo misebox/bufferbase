@@ -17,7 +17,6 @@ bun install
 | `bun run build` | Emits `dist/esm` and `dist/cjs`, then fixes up the dual-package fields |
 | `bun run release <level>` | Versions, publishes and pushes (see below) |
 | `bun run example` | Runs `src/example.ts` against the source |
-| `bun run check:npm-auth` | Fails unless npm has a session |
 
 ## Layout
 

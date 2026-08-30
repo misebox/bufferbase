@@ -184,6 +184,17 @@ type CodecSpec =
       delimiters?: boolean; requireFullBlocks?: boolean };
 ```
 
+### Also exported
+
+| Export | What it is |
+|---|---|
+| `Bases` | The table above, as codec specs |
+| `Chars` | The alphabets, for building your own specs |
+| `isBaseName(value)` | Whether a string names one of `Bases` |
+| `resolveSpec(base)` | The spec behind a name |
+| `getCodec(spec)` | The codec for a spec, built once per spec object |
+| `RadixCodec`, `BlockCodec`, `Block85Codec` | The implementations, if you want one directly |
+
 ### Errors
 
 | Error | Thrown when |
