@@ -25,7 +25,8 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.json",
     "prepublishOnly": "bun run build",
-    "release": "semantic-release",
+    "check:npm-auth": "npm whoami > /dev/null 2>&1 || { echo 'Not logged in to npm. Run: npm login' >&2; exit 1; }",
+    "release": "bun run check:npm-auth && semantic-release",
     "example": "bun src/example.ts",
     "test": "bun test"
   },

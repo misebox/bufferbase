@@ -24,3 +24,6 @@ dist/
 # Project
 tmp/
 CLAUDE.md
+
+# npm login writes credentials here; never commit them
+.npmrc
