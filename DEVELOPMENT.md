@@ -55,42 +55,38 @@ Do not add attribution trailers to commit messages.
 ## Releasing
 
 ```bash
-git push origin main                        # everything to be released must be pushed
-NPM_TOKEN=npm_xxx npx semantic-release --dry-run --no-ci   # check the version and the notes
-NPM_TOKEN=npm_xxx bun run release
+git push origin main                     # everything to be released must be pushed
+npx semantic-release --dry-run --no-ci   # check the version and the notes
+bun run release                          # prepares the release
+npm publish                              # publishes it, authenticating in the browser
 ```
 
 `bun run release` does, in order:
 
 1. computes the version from the commits since the last tag
 2. writes `CHANGELOG.md`
-3. sets `version` in `package.json` and runs `npm publish`
-   (`prepublishOnly` builds `dist/` first)
+3. sets `version` in `package.json`
 4. commits `CHANGELOG.md`, `package.json` and `bun.lock` back to `main`, and
    pushes the new tag over SSH
 5. creates the GitHub release, using `GH_TOKEN` or `GITHUB_TOKEN`
 
+`npm publish` then builds `dist/` through `prepublishOnly` and uploads it.
+
 Never edit `version` in `package.json` by hand. semantic-release computes it
 and overwrites whatever is there.
 
-### The token
+### Why publishing is a separate step
 
-The account requires two-factor authentication for writes, and semantic-release
-cannot answer a prompt, so publishing needs a token that is allowed past it.
-Create one at https://www.npmjs.com/settings/misebox/tokens:
+The npm account requires two-factor authentication for writes, which npm
+satisfies by opening a browser. semantic-release runs npm as a
+non-interactive subprocess and cannot answer that prompt, so
+`@semantic-release/npm` is configured with `npmPublish: false` and publishing
+stays a command you run yourself.
 
-- type: **Granular Access Token**
-- Packages and scopes: **Read and write**, limited to `bufferbase`
-- **Bypass two-factor authentication: enabled**
-- expiration: as short as you are willing to renew
-
-Nothing else will do. A classic publish token still gets asked for a one-time
-password, and `NPM_CONFIG_OTP` is not accepted for this account.
-
-`npm login` writes its own token to `~/.npmrc`, and npm would prefer it over
-`NPM_TOKEN`. `scripts/release.sh` therefore writes a project-local `.npmrc`,
-which outranks it, and deletes it when the release ends. That file is in
-`.gitignore`; do not commit it.
+The alternative is a granular access token with "Bypass two-factor
+authentication" enabled, exported as `NPM_TOKEN`, which is what a CI job would
+need. It is a long-lived credential that can publish on its own, so it is not
+worth keeping on a laptop for a release you are present for anyway.
 
 ### Why the dry run matters
 
@@ -104,13 +100,9 @@ visible before it ships.
 git ls-remote --tags origin
 ```
 
-### If a release fails partway
+### If publishing fails
 
-A failure after step 3 leaves the version on npm but no tag and no GitHub
-release. Do not re-run `release`; it would try to publish the same version
-again. Tag the released commit by hand, push it, and carry on from the next
-change.
-
-```bash
-git tag v3.0.0 <commit> && git push origin v3.0.0
-```
+The tag and the GitHub release already exist at that point, but npm does not
+have the version. Do not re-run `release`; it would compute a further version
+on top of a release that never shipped. Fix whatever npm objected to and run
+`npm publish` again.

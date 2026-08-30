@@ -9,10 +9,11 @@ export default {
     // 3. "2" で生成されたリリースノート用コンテンツを Changelog ファイルに記述する。
     '@semantic-release/changelog',
 
-    // 4-a. package.json の version フィールドを次期バージョン番号で更新する。
-    // 4-b. npmjs にパッケージを公開する。
-    // 4-c. npm dist-tag コマンドを実行して npmjs で公開するパッケージにタグを追加する。
-    '@semantic-release/npm',
+    // 4. package.json の version フィールドを次期バージョン番号で更新する。
+    //    公開は行わない。npm の 2FA はブラウザ認証を求めるが semantic-release は
+    //    非対話でサブプロセスを起動するため応答できない。リリース後に手で
+    //    `npm publish` する（scripts/release.sh が案内する）。
+    ['@semantic-release/npm', { npmPublish: false }],
 
     // 5. リリースフローで発生したアセットの更新差分をリポジトリにコミットする。
     [
