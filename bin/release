@@ -1,18 +1,21 @@
 #!/bin/sh
-# Releases a new version.
+# Releases a version.
 #
-#   bin/release major | minor | patch | <version>
+#   bin/release patch | minor | major | current
 #
-# Nothing leaves the machine until npm has accepted the package: the version
-# commit and its tag are made locally, published, and only then pushed.
+# patch, minor and major bump the version in package.json, commit it and tag
+# it. current releases the version package.json already holds, tagging it if it
+# is not tagged yet.
+#
+# Nothing leaves the machine until npm has accepted the package: the commit and
+# the tag are made locally, published, and only then pushed.
 set -e
 
 LEVEL="$1"
 case "$LEVEL" in
-  major|minor|patch) ;;
-  [0-9]*.[0-9]*.[0-9]*) ;;
+  patch|minor|major|current) ;;
   *)
-    echo "usage: bin/release major | minor | patch | <version>" >&2
+    echo "usage: bin/release patch | minor | major | current" >&2
     exit 1
     ;;
 esac
@@ -38,20 +41,33 @@ fi
 bun test
 
 CURRENT=$(node -p "require('./package.json').version")
-printf 'Release %s -> %s and publish to npm? [y/N] ' "$CURRENT" "$LEVEL"
+if [ "$LEVEL" = current ]; then
+  printf 'Release %s as it stands and publish to npm? [y/N] ' "$CURRENT"
+else
+  printf 'Release %s as a %s bump and publish to npm? [y/N] ' "$CURRENT" "$LEVEL"
+fi
 read -r REPLY
 case "$REPLY" in
   y|Y) ;;
   *) echo "Cancelled."; exit 1 ;;
 esac
 
-# Commits package.json and creates the tag, both local only.
-npm version "$LEVEL"
-VERSION=$(node -p "require('./package.json').version")
+if [ "$LEVEL" = current ]; then
+  VERSION="$CURRENT"
+  if git rev-parse -q --verify "refs/tags/v$VERSION" > /dev/null; then
+    echo "v$VERSION is already tagged."
+  else
+    git tag "v$VERSION"
+  fi
+else
+  # Writes package.json, commits it and creates the tag, all local.
+  npm version "$LEVEL" > /dev/null
+  VERSION=$(node -p "require('./package.json').version")
+  echo "Bumped to $VERSION."
+fi
 
 # Builds dist/ through prepublishOnly, then opens a browser for two-factor
-# authentication. If this fails, the commit and tag are still local and the
-# release has not happened.
+# authentication. If this fails, the commit and tag are still local.
 npm publish
 
 git push --follow-tags
