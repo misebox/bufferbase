@@ -1,46 +1,45 @@
 /**
- * @deprecated Use the new API instead:
- * - `encode(buffer, 'base58')` or `base58.encode(buffer)`
- * - `decode(encoded, 'base58')` or `base58.decode(encoded)`
- * - `convert(input, 'base58', 'base64')` or `base58.convertTo(base64, input)`
- * - `validate(input, 'base58')` or `base58.validate(input)`
+ * @deprecated Use the current API instead:
+ * - `encode(buffer, 'base58')` or `Codecs.base58.encode(buffer)`
+ * - `decode(encoded, 'base58')` or `Codecs.base58.decode(encoded)`
+ * - `convert(input, 'base58', 'base64')` or `Codecs.base58.convertTo(...)`
+ * - `validate(input, 'base58')` or `Codecs.base58.validate(input)`
+ *
+ * These classes take a bare alphabet, which always meant a radix conversion,
+ * so they keep behaving exactly as they did.
  */
 
-import { Buffer } from 'node:buffer';
-import { Codec } from './codec.js';
-import { InvalidCharacterError, BufferSizeError } from './errors.js';
+import type { Buffer } from 'node:buffer';
+import type { BufferLike } from './types.js';
+import { RadixCodec } from './codec-radix.js';
 
-// Re-export Chars for backward compatibility
+/** @deprecated Import `Chars` from the package root. */
 export { Chars } from './bases.js';
 
-// Re-export errors
-export { InvalidCharacterError, BufferSizeError };
+/** @deprecated Import these from the package root. */
+export { BufferSizeError, InvalidCharacterError } from './errors.js';
 
-/**
- * @deprecated Use `Codec` or `createCodec()` instead.
- */
+/** @deprecated Use `createCodec(alphabet)`. */
 export class BufferEncoder {
-  private codec: Codec;
+  private readonly codec: RadixCodec;
 
-  constructor(private baseChars: string) {
-    this.codec = new Codec(baseChars);
+  constructor(baseChars: string) {
+    this.codec = new RadixCodec({ alphabet: baseChars, algorithm: 'radix' });
   }
 
-  encode(buffer: Buffer): string {
+  encode(buffer: BufferLike): string {
     return this.codec.encode(buffer);
   }
 
   decode(encoded: string, bufferSize?: number): Buffer {
-    return this.codec.decode(encoded, bufferSize !== undefined ? { size: bufferSize } : undefined);
+    return this.codec.decode(encoded, bufferSize === undefined ? undefined : { size: bufferSize });
   }
 }
 
-/**
- * @deprecated Use `convert()` function or `codec.convertTo()` instead.
- */
+/** @deprecated Use `convert()` or `codec.convertTo()`. */
 export class Converter {
-  decoder: BufferEncoder;
-  encoder: BufferEncoder;
+  readonly decoder: BufferEncoder;
+  readonly encoder: BufferEncoder;
 
   constructor(inputBase: string, outputBase: string) {
     this.decoder = new BufferEncoder(inputBase);
@@ -52,24 +51,15 @@ export class Converter {
   }
 }
 
-/**
- * @deprecated Use `validate()` function or `codec.validate()` instead.
- */
+/** @deprecated Use `validate()` or `codec.validate()`. */
 export class Validator {
-  private codec: Codec;
+  private readonly codec: RadixCodec;
 
   constructor(inputBase: string) {
-    this.codec = new Codec(inputBase);
+    this.codec = new RadixCodec({ alphabet: inputBase, algorithm: 'radix' });
   }
 
   validate(input: string): boolean {
     return this.codec.validate(input);
   }
 }
-
-/**
- * @deprecated Use `validate()` from the main module instead.
- */
-export const validate = (input: string, base: string): boolean => {
-  return new Validator(base).validate(input);
-};

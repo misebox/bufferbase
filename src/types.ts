@@ -4,76 +4,106 @@ import { Buffer } from 'node:buffer';
  * Input type accepted by encode functions.
  *
  * Supports both Node.js `Buffer` and standard `Uint8Array` for browser compatibility.
- *
- * @example
- * ```typescript
- * // Node.js Buffer
- * encode(Buffer.from('Hello'), 'base58');
- *
- * // Browser Uint8Array
- * encode(new Uint8Array([72, 101, 108, 108, 111]), 'base58');
- * ```
  */
 export type BufferLike = Buffer | Uint8Array;
 
 /**
- * Supported base encoding names.
+ * How bytes are mapped to characters.
  *
- * These names can be used with the function API:
- * - `'decimal'` - Base 10 (0-9)
- * - `'base16'` / `'hex'` - Hexadecimal (0-9A-F)
- * - `'base32'` - RFC 4648 Base32 (A-Z2-7)
- * - `'base32crockford'` - Crockford's Base32 (0-9A-HJKMNP-TV-Z)
- * - `'base36'` - Alphanumeric (0-9A-Z)
- * - `'base52'` - Letters only (A-Za-z)
- * - `'base58'` - Bitcoin alphabet (no 0OIl)
- * - `'base64'` - Standard Base64 (A-Za-z0-9+/)
- * - `'base64url'` - URL-safe Base64 (A-Za-z0-9-_)
- * - `'base64xml'` - XML token Base64 (A-Za-z0-9._)
- * - `'base64xmlname'` - XML name Base64 (A-Za-z0-9_:)
- * - `'ascii85'` - ASCII85 encoding
- * - `'base85'` - Base85 encoding
- * - `'z85'` - ZeroMQ Z85 encoding
+ * An alphabet alone does not determine an encoding: the same 64 characters can
+ * be used by a radix conversion or by a bit-block encoding, producing different
+ * output. Every codec therefore names its algorithm explicitly.
+ *
+ * - `'radix'` — treats the whole buffer as one big integer and rewrites it in
+ *   base `alphabet.length`. Works with any alphabet and any input length.
+ *   Leading zero bytes are preserved as leading `alphabet[0]` characters.
+ *   Used by Base58, Base36, and custom alphabets. Not RFC 4648.
+ * - `'block'` — regroups the bit stream into `log2(alphabet.length)`-bit chunks,
+ *   as specified by RFC 4648. Requires an alphabet of 2, 4, 8, 16, 32, or 64
+ *   characters. Used by Base16, Base32, and Base64.
+ * - `'block85'` — converts each 4-byte block to 5 characters (85^5 > 2^32).
+ *   Requires an alphabet of exactly 85 characters. Used by Ascii85 and Z85.
+ */
+export type Algorithm = 'radix' | 'block' | 'block85';
+
+/** Options shared by every algorithm. */
+interface CommonSpec {
+  /** Characters used for encoding, ordered by value. */
+  readonly alphabet: string;
+  /**
+   * Reject input that is well-formed but not the canonical encoding of any
+   * byte sequence (RFC 4648 §3.5). Defaults to `true`.
+   *
+   * With `strict: false`, `'Zm9='` and `'Zm8='` both decode to `'fo'`, so
+   * decoding is no longer injective. Only disable it to read data produced by
+   * a lenient encoder.
+   */
+  readonly strict?: boolean;
+  /**
+   * Accept either letter case when decoding, and when validating.
+   * Requires an alphabet that does not contain both cases of the same letter.
+   * Defaults to `false`.
+   */
+  readonly caseInsensitive?: boolean;
+}
+
+/** A codec that rewrites the buffer as an integer in base `alphabet.length`. */
+export interface RadixSpec extends CommonSpec {
+  readonly algorithm: 'radix';
+}
+
+/** A codec that regroups the bit stream, as specified by RFC 4648. */
+export interface BlockSpec extends CommonSpec {
+  readonly algorithm: 'block';
+  /**
+   * Character used to pad the final block to a whole number of characters,
+   * or `false` to emit no padding. Defaults to `'='`.
+   */
+  readonly pad?: string | false;
+}
+
+/** A codec that converts each 4-byte block to 5 characters. */
+export interface Block85Spec extends CommonSpec {
+  readonly algorithm: 'block85';
+  /** Write a block of four zero bytes as `'z'`. Defaults to `false`. */
+  readonly zeroShortcut?: boolean;
+  /** Write a block of four spaces as `'y'`. Defaults to `false`. */
+  readonly spaceShortcut?: boolean;
+  /** Wrap the output in `'<~'` and `'~>'`. Defaults to `false`. */
+  readonly delimiters?: boolean;
+  /**
+   * Require the input length to be a multiple of 4 bytes, as Z85 does.
+   * Defaults to `false`, which encodes a trailing partial block as
+   * `length + 1` characters.
+   */
+  readonly requireFullBlocks?: boolean;
+}
+
+/**
+ * A complete codec definition: an alphabet plus the algorithm that uses it.
  *
  * @example
  * ```typescript
- * import { encode, decode } from 'bufferbase';
+ * import { encode, type CodecSpec } from 'bufferbase';
  *
- * const encoded = encode(Buffer.from('Hello'), 'base58');
- * const decoded = decode(encoded, 'base58');
+ * const binary: CodecSpec = { alphabet: '01', algorithm: 'radix' };
+ * encode(Uint8Array.of(5), binary); // '101'
  * ```
  */
-export type BaseName =
-  | 'decimal'
-  | 'base16'
-  | 'hex'
-  | 'base32'
-  | 'base32crockford'
-  | 'base36'
-  | 'base52'
-  | 'base58'
-  | 'base64'
-  | 'base64url'
-  | 'base64xml'
-  | 'base64xmlname'
-  | 'ascii85'
-  | 'base85'
-  | 'z85';
+export type CodecSpec = RadixSpec | BlockSpec | Block85Spec;
 
 /**
  * Options for decode operations.
- *
- * @example
- * ```typescript
- * // Decode with fixed buffer size (pads with leading zeros)
- * const buffer = decode(encoded, 'base58', { size: 32 });
- * ```
  */
 export interface DecodeOptions {
   /**
-   * Expected buffer size in bytes.
-   * - If decoded result is smaller, pads with leading zeros.
-   * - If decoded result is larger, throws `BufferSizeError`.
+   * Required byte length of the result.
+   *
+   * The decoded buffer must be exactly this long, otherwise `BufferSizeError`
+   * is thrown. Because leading zeros carry no value in a radix encoding, a
+   * `'radix'` codec pads a shorter result with leading zero bytes to reach it;
+   * `'block'` and `'block85'` codecs derive the length from the input and can
+   * only check it.
    */
   size?: number;
 }
@@ -81,49 +111,24 @@ export interface DecodeOptions {
 /**
  * Codec interface for encoding/decoding operations.
  *
- * Implemented by the `Codec` class and used by pre-defined codecs in `Codecs`.
- *
- * @example
- * ```typescript
- * import { Codecs } from 'bufferbase';
- *
- * const encoded = Codecs.base58.encode(Buffer.from('Hello'));
- * const decoded = Codecs.base58.decode(encoded);
- * ```
+ * `validate(input)` returns `true` exactly when `decode(input)` succeeds.
  */
 export interface ICodec {
   /** Character set used for encoding. */
   readonly chars: string;
 
-  /**
-   * Encodes a buffer to a base-encoded string.
-   * @param buffer - The buffer or Uint8Array to encode
-   * @returns Base-encoded string
-   */
+  /** The algorithm this codec applies to `chars`. */
+  readonly algorithm: Algorithm;
+
+  /** Encodes a buffer to a base-encoded string. */
   encode(buffer: BufferLike): string;
 
-  /**
-   * Decodes a base-encoded string to a buffer.
-   * @param encoded - The string to decode
-   * @param options - Decode options (e.g., fixed size)
-   * @returns Decoded buffer
-   * @throws {InvalidCharacterError} If the string contains invalid characters
-   * @throws {BufferSizeError} If the result exceeds the specified size
-   */
+  /** Decodes a base-encoded string to a buffer. */
   decode(encoded: string, options?: DecodeOptions): Buffer;
 
-  /**
-   * Validates if a string contains only valid characters for this base.
-   * @param input - The string to validate
-   * @returns `true` if valid, `false` otherwise
-   */
+  /** Reports whether `decode` would succeed for this input. */
   validate(input: string): boolean;
 
-  /**
-   * Converts a string from this base to another base.
-   * @param target - Target codec to convert to
-   * @param input - The string to convert
-   * @returns String in the target base encoding
-   */
+  /** Decodes with this codec, then re-encodes with `target`. */
   convertTo(target: ICodec, input: string): string;
 }

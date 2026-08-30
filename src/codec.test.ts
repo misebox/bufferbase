@@ -23,10 +23,15 @@ describe('Function API', () => {
   });
 
   test('encode/decode with custom character set', () => {
+    const spec = { alphabet: Chars.Base58, algorithm: 'radix' } as const;
     const buffer = Buffer.from('Test', 'utf8');
-    const encoded = encode(buffer, Chars.Base58);
-    const decoded = decode(encoded, Chars.Base58);
+    const encoded = encode(buffer, spec);
+    const decoded = decode(encoded, spec);
     expect(decoded.toString('utf8')).toBe('Test');
+  });
+
+  test('a bare alphabet is no longer accepted as a base', () => {
+    expect(() => encode(Buffer.from('Test'), Chars.Base58 as never)).toThrow(UnknownBaseError);
   });
 
   test('convert between bases', () => {
@@ -183,17 +188,20 @@ describe('All character sets', () => {
     'base58',
     'base64',
     'base64url',
+    'base32hex',
     'ascii85',
-    'base85',
     'z85',
   ] as const;
 
+  // 12 bytes, so that z85 (whole 4-byte blocks only) is covered by the loop.
+  const payload = 'Hello, World';
+
   for (const base of baseNames) {
     test(`${base} encode/decode round-trip`, () => {
-      const buffer = Buffer.from('Hello, World!', 'utf8');
+      const buffer = Buffer.from(payload, 'utf8');
       const encoded = encode(buffer, base);
       const decoded = decode(encoded, base);
-      expect(decoded.toString('utf8')).toBe('Hello, World!');
+      expect(decoded.toString('utf8')).toBe(payload);
     });
   }
 });
@@ -258,13 +266,13 @@ describe('Uint8Array support', () => {
   });
 
   test('encode Uint8Array across all base encodings', () => {
-    const uint8Array = new Uint8Array([1, 2, 3, 4, 5]);
-    const buffer = Buffer.from([1, 2, 3, 4, 5]);
+    const uint8Array = new Uint8Array([1, 2, 3, 4]);
+    const buffer = Buffer.from([1, 2, 3, 4]);
 
     const baseNames = [
-      'decimal', 'base16', 'hex', 'base32', 'base32crockford',
+      'decimal', 'base16', 'hex', 'base32', 'base32hex', 'base32crockford',
       'base36', 'base52', 'base58', 'base64', 'base64url',
-      'ascii85', 'base85', 'z85',
+      'ascii85', 'z85',
     ] as const;
 
     for (const base of baseNames) {

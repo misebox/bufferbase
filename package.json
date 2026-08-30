@@ -1,7 +1,7 @@
 {
   "name": "bufferbase",
   "version": "2.0.0",
-  "description": "Buffer-to-BaseN Encoder, Decoder, Converter, and Validator",
+  "description": "Buffer-to-BaseN encoding: RFC 4648 block encodings, Ascii85/Z85, and Base58-style radix conversion",
   "sideEffects": false,
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -47,19 +47,24 @@
     "src"
   ],
   "keywords": [
-    "number",
     "encode",
+    "decode",
     "convert",
-    "decimal",
     "base",
+    "rfc4648",
     "base16",
+    "hex",
     "base32",
+    "base32hex",
     "crockford",
     "base36",
     "base58",
     "base64",
-    "Ascii85",
-    "base85"
+    "base64url",
+    "ascii85",
+    "base85",
+    "z85",
+    "radix"
   ],
   "author": "misebox",
   "license": "ISC",

@@ -1,93 +1,73 @@
-import type { BaseName, DecodeOptions, BufferLike } from './types.js';
-import { Codec } from './codec.js';
-import { resolveChars } from './bases.js';
+import type { BufferLike, CodecSpec, DecodeOptions } from './types.js';
+import type { Buffer } from 'node:buffer';
+import { resolveSpec, type BaseName } from './bases.js';
+import { getCodec } from './codec.js';
 
-// Cache for codec instances
-const codecCache = new Map<string, Codec>();
-
-/**
- * Gets or creates a codec for the specified base.
- */
-function getCodec(base: BaseName | string): Codec {
-  const chars = resolveChars(base);
-  let codec = codecCache.get(chars);
-  if (!codec) {
-    codec = new Codec(chars);
-    codecCache.set(chars, codec);
-  }
-  return codec;
-}
+/** A named encoding, or a spec describing one directly. */
+export type Base = BaseName | CodecSpec;
 
 /**
  * Encodes a buffer to a base-encoded string.
  *
  * @param buffer - Buffer or Uint8Array to encode
- * @param base - Base name (e.g., 'base58') or custom character set
- * @returns Encoded string
+ * @param base - Base name (e.g. `'base58'`) or a codec spec
  *
  * @example
  * ```typescript
- * // Node.js Buffer
- * const encoded = encode(Buffer.from('Hello'), 'base58');
- *
- * // Browser Uint8Array
- * const encoded = encode(new Uint8Array([72, 101, 108, 108, 111]), 'base58');
+ * encode(Buffer.from('fo'), 'base64');                        // 'Zm8='
+ * encode(Uint8Array.of(5), { alphabet: '01', algorithm: 'radix' }); // '101'
  * ```
  */
-export function encode(buffer: BufferLike, base: BaseName | string): string {
-  return getCodec(base).encode(buffer);
+export function encode(buffer: BufferLike, base: Base): string {
+  return getCodec(resolveSpec(base)).encode(buffer);
 }
 
 /**
  * Decodes a base-encoded string to a buffer.
  *
  * @param encoded - String to decode
- * @param base - Base name (e.g., 'base58') or custom character set
- * @param options - Decode options (e.g., { size: 32 })
- * @returns Decoded buffer
+ * @param base - Base name (e.g. `'base58'`) or a codec spec
+ * @param options - Decode options, such as a required `size`
+ * @throws {InvalidCharacterError} If a character is not in the alphabet
+ * @throws {InvalidLengthError} If the length cannot encode a whole number of bytes
+ * @throws {NonCanonicalError} If spare bits are set and the codec is strict
+ * @throws {BufferSizeError} If the result does not have the requested `size`
  *
  * @example
  * ```typescript
- * const buffer = decode('9Ajdvz', 'base58');
- * const fixedSize = decode('9Ajdvz', 'base58', { size: 32 });
+ * decode('Zm8=', 'base64');              // Buffer('fo')
+ * decode('9Ajdvzr', 'base58', { size: 32 });
  * ```
  */
-export function decode(encoded: string, base: BaseName | string, options?: DecodeOptions): Buffer {
-  return getCodec(base).decode(encoded, options);
+export function decode(encoded: string, base: Base, options?: DecodeOptions): Buffer {
+  return getCodec(resolveSpec(base)).decode(encoded, options);
 }
 
 /**
- * Converts a string from one base to another.
- *
- * @param input - String to convert
- * @param from - Source base name or character set
- * @param to - Target base name or character set
- * @returns Converted string
+ * Converts a string from one base to another, through the bytes they describe.
  *
  * @example
  * ```typescript
- * const base64 = convert('9Ajdvz', 'base58', 'base64url');
+ * convert('9Ajdvzr', 'base58', 'base64url');
+ * convert(legacy, 'radix64', 'base64'); // migrate data written by bufferbase 2
  * ```
  */
-export function convert(input: string, from: BaseName | string, to: BaseName | string): string {
-  const fromCodec = getCodec(from);
-  const toCodec = getCodec(to);
-  return fromCodec.convertTo(toCodec, input);
+export function convert(input: string, from: Base, to: Base): string {
+  const source = getCodec(resolveSpec(from));
+  const target = getCodec(resolveSpec(to));
+  return source.convertTo(target, input);
 }
 
 /**
- * Validates if a string contains only valid characters for the specified base.
- *
- * @param input - String to validate
- * @param base - Base name or character set
- * @returns true if valid, false otherwise
+ * Reports whether `decode` would succeed for this input.
  *
  * @example
  * ```typescript
- * validate('9Ajdvz', 'base58'); // true
- * validate('0Ajdvz', 'base58'); // false ('0' is not in base58)
+ * validate('Zm8=', 'base64');  // true
+ * validate('Zm9=', 'base64');  // false — spare bits are not zero
+ * validate('Zm9vd', 'base64'); // false — 5 characters cannot be whole bytes
  * ```
  */
-export function validate(input: string, base: BaseName | string): boolean {
-  return getCodec(base).validate(input);
+export function validate(input: string, base: Base): boolean {
+  return getCodec(resolveSpec(base)).validate(input);
 }
