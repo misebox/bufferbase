@@ -25,16 +25,12 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.json",
     "prepublishOnly": "bun run build",
-    "release": "sh scripts/release.sh",
     "example": "bun src/example.ts",
     "test": "bun test"
   },
   "devDependencies": {
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
     "@types/bun": "^1.1.0",
     "@types/node": "^20.11.5",
-    "semantic-release": "^25.0.2",
     "tsconfig-to-dual-package": "^1.2.0",
     "typescript": "^5.3.3"
   },
