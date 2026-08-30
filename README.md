@@ -20,7 +20,7 @@ its algorithm.
 |---|---|---|---|
 | `block` | Regroups the bit stream into `log2(n)`-bit chunks, per RFC 4648 | 2, 4, 8, 16, 32, or 64 characters | Base16, Base32, Base64 |
 | `block85` | Converts each 4-byte block to 5 characters | exactly 85 characters | Ascii85, Z85 |
-| `radix` | Reads the buffer as one integer and rewrites it in base `n` | any length | Base58, Base36, custom |
+| `radix` | Reads the buffer as one integer and rewrites it in base `n` | any length | Base58, Base36, Crockford |
 
 ```typescript
 import { encode } from 'bufferbase';
@@ -42,18 +42,20 @@ output length that is a fixed function of the input length.
 | `base32hex` | `block` | 0-9A-V | RFC 4648 Table 4 |
 | `base64` | `block` | A-Za-z0-9+/ | RFC 4648 Table 1 |
 | `base64url` | `block` | A-Za-z0-9-_ | RFC 4648 Table 2, unpadded |
-| `base64xml` | `block` | A-Za-z0-9._ | no standard, unpadded |
-| `base64xmlname` | `block` | A-Za-z0-9_: | no standard, unpadded |
+| `base64xml` | `block` | A-Za-z0-9._ | unpadded |
+| `base64xmlname` | `block` | A-Za-z0-9_: | unpadded |
 | `ascii85` | `block85` | `!` to `u` | zero-block shortcut on |
 | `z85` | `block85` | ZeroMQ RFC 32 | whole 4-byte blocks only |
 | `base58` | `radix` | Bitcoin alphabet | |
+| `base32crockford` | `radix` | 0-9A-HJKMNP-TV-Z | |
+| `base32crockfordcheck` | `radix` | as above, plus `*~$=U` | carries a check symbol |
 | `base36` | `radix` | 0-9A-Z | case-insensitive |
 | `base52` | `radix` | A-Za-z | |
-| `base32crockford` | `radix` | 0-9A-HJKMNP-TV-Z | see Known gaps |
 | `decimal` | `radix` | 0-9 | |
-| `radix16`, `radix32`, `radix64`, `radix64url` | `radix` | RFC alphabets | for reading bufferbase 2 data |
+| `radix16`, `radix32`, `radix64`, `radix64url` | `radix` | the RFC alphabets | radix conversion, not RFC 4648 |
 
-Base16, Base32 and Base32hex decode in either case.
+Base16, Base32, Base32hex, Base36 and both Crockford codecs decode in either
+case.
 
 ## Usage
 
@@ -94,6 +96,28 @@ const lowerHex = createCodec({ alphabet: '0123456789abcdef', algorithm: 'block',
 lowerHex.encode(Uint8Array.of(0, 1)); // '0001'
 
 createCodec('01'); // a bare string means a radix codec over that alphabet
+```
+
+### Crockford's Base32
+
+Crockford's specification describes a notation for numbers rather than for byte
+streams, so a radix conversion is the right reading of it. Decoding accepts
+either case, reads `I` and `L` as `1` and `O` as `0`, and ignores the hyphens
+that may be inserted for readability. Encoding emits only the alphabet.
+
+```typescript
+decode('91jprv3f', 'base32crockford');   // Buffer('Hello')
+decode('91JP-RV3F', 'base32crockford');  // the same
+decode('9IJPRV3F', 'base32crockford');   // the same, reading I as 1
+```
+
+`base32crockfordcheck` appends the check symbol, the value modulo 37 written
+with the alphabet extended by `*~$=U`. Decoding verifies it, so a mistyped
+character is caught rather than decoded into different bytes.
+
+```typescript
+encode(Buffer.from('Hello'), 'base32crockfordcheck'); // '91JPRV3FG'
+validate('91JPRV3XG', 'base32crockfordcheck');        // false
 ```
 
 ### Ascii85 variants
@@ -138,36 +162,6 @@ createCodec({ alphabet: Chars.Base64, algorithm: 'block', strict: false });
 The same check rejects lengths that cannot be a whole number of bytes
 (`'Zm9vd'`), misplaced or excess padding, and Ascii85 groups above 2^32.
 
-## Migrating from bufferbase 2
-
-Version 2 encoded everything by radix conversion, including the names that
-denote RFC 4648 encodings. Those names now follow the standards they name, so
-strings written by version 2 under `base16`, `base32`, `base64`, `base64url`,
-`ascii85` or `z85` will not decode the same way.
-
-Read them with the `radix*` names and rewrite them:
-
-```typescript
-convert(oldValue, 'radix64', 'base64');
-```
-
-Other breaking changes:
-
-- `base85` is gone. Its alphabet matched no published specification.
-- `Chars.Ascii85` was 84 characters, missing `\`. It is now the specified 85.
-- A bare alphabet string is no longer accepted as a base. Pass a spec, or build
-  a codec with `createCodec`.
-- `validate` now checks length, padding and canonicality, not just characters.
-- `decode(..., { size })` requires an exact length for `block` and `block85`
-  codecs, which derive it from the input. `radix` codecs still pad.
-- `new Codec(chars)` is deprecated in favour of `createCodec`.
-
-## Known gaps
-
-`base32crockford` implements the alphabet and case-insensitivity of Crockford's
-specification, but not its `I`/`L` to `1` and `O` to `0` normalisation, and not
-its check symbol.
-
 ## API
 
 ```typescript
@@ -178,15 +172,16 @@ validate(input, base)             // boolean
 createCodec(spec | alphabet)      // ICodec
 ```
 
-`base` is a name from the table above or a `CodecSpec`:
+`base` is a name from the table above or a `CodecSpec`. Every spec accepts
+`strict`, `caseInsensitive`, `aliases` and `ignore`:
 
 ```typescript
 type CodecSpec =
-  | { alphabet: string; algorithm: 'radix'; strict?: boolean; caseInsensitive?: boolean }
-  | { alphabet: string; algorithm: 'block'; pad?: string | false; /* ... */ }
+  | { alphabet: string; algorithm: 'radix'; checkSymbols?: string }
+  | { alphabet: string; algorithm: 'block'; pad?: string | false }
   | { alphabet: string; algorithm: 'block85';
       zeroShortcut?: boolean; spaceShortcut?: boolean;
-      delimiters?: boolean; requireFullBlocks?: boolean; /* ... */ };
+      delimiters?: boolean; requireFullBlocks?: boolean };
 ```
 
 ### Errors
@@ -197,6 +192,7 @@ type CodecSpec =
 | `InvalidLengthError` | the length cannot encode a whole number of bytes |
 | `NonCanonicalError` | spare bits are set and the codec is strict |
 | `ValueRangeError` | a block85 group is 2^32 or above |
+| `CheckSymbolError` | a check symbol does not match the value it follows |
 | `BufferSizeError` | the result does not have the requested `size` |
 | `UnknownBaseError` | the base name is not known |
 | `InvalidCodecError` | the spec cannot be realised |

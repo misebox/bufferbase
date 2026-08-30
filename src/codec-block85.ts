@@ -14,7 +14,9 @@ const BYTES_PER_BLOCK = 4;
 const CHARS_PER_BLOCK = 5;
 const BLOCK_LIMIT = 0x1_00_00_00_00;
 const ZERO_CHAR = 'z';
+const ZERO_CODE = ZERO_CHAR.charCodeAt(0);
 const SPACE_CHAR = 'y';
+const SPACE_CODE = SPACE_CHAR.charCodeAt(0);
 const SPACE_BLOCK = 0x20202020;
 const OPEN = '<~';
 const CLOSE = '~>';
@@ -79,6 +81,95 @@ export class Block85Codec extends BaseCodec {
       );
     }
 
+    const codes = this.codes;
+    if (codes === null) {
+      return this.encodeAsText(buffer);
+    }
+
+    const blocks = Math.ceil(buffer.length / BYTES_PER_BLOCK);
+    const written = new Uint8Array(blocks * CHARS_PER_BLOCK + OPEN.length + CLOSE.length);
+    let at = 0;
+    if (this.delimiters) {
+      at += this.writeAscii(written, at, OPEN);
+    }
+
+    // Whole blocks, with the five divisions unrolled. Dividing a float by 85
+    // and truncating with `>>> 0` is several times quicker than `%` paired
+    // with `Math.floor`, because every quotient here still fits in 32 bits.
+    const whole = buffer.length - (buffer.length % BYTES_PER_BLOCK);
+    for (let from = 0; from < whole; from += BYTES_PER_BLOCK) {
+      const value = buffer.readUInt32BE(from);
+      if (this.zeroShortcut && value === 0) {
+        written[at++] = ZERO_CODE;
+        continue;
+      }
+      if (this.spaceShortcut && value === SPACE_BLOCK) {
+        written[at++] = SPACE_CODE;
+        continue;
+      }
+      const q1 = (value / 85) >>> 0;
+      const q2 = (q1 / 85) >>> 0;
+      const q3 = (q2 / 85) >>> 0;
+      const q4 = (q3 / 85) >>> 0;
+      written[at] = codes[q4];
+      written[at + 1] = codes[q3 - q4 * 85];
+      written[at + 2] = codes[q2 - q3 * 85];
+      written[at + 3] = codes[q1 - q2 * 85];
+      written[at + 4] = codes[value - q1 * 85];
+      at += CHARS_PER_BLOCK;
+    }
+
+    // The trailing partial block, encoded as `size + 1` characters.
+    if (whole < buffer.length) {
+      const size = buffer.length - whole;
+      let value = 0;
+      for (let i = 0; i < BYTES_PER_BLOCK; i++) {
+        value = value * 256 + (whole + i < buffer.length ? buffer[whole + i] : 0);
+      }
+      const digits = new Uint8Array(CHARS_PER_BLOCK);
+      for (let i = CHARS_PER_BLOCK - 1; i >= 0; i--) {
+        const quotient = (value / 85) >>> 0;
+        digits[i] = codes[value - quotient * 85];
+        value = quotient;
+      }
+      for (let i = 0; i <= size; i++) {
+        written[at++] = digits[i];
+      }
+    }
+    if (this.delimiters) {
+      at += this.writeAscii(written, at, CLOSE);
+    }
+    return this.textFrom(written, at);
+  }
+
+  decode(encoded: string, options?: DecodeOptions): Buffer {
+    const bytes = this.readBytes(this.undelimit(this.strip(encoded)));
+    const size = options?.size;
+    if (size !== undefined && bytes.length !== size) {
+      throw new BufferSizeError(bytes.length, size);
+    }
+    return Buffer.from(bytes);
+  }
+
+  validate(input: string): boolean {
+    try {
+      this.readBytes(this.undelimit(this.strip(input)));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Writes an ASCII marker, returning how many bytes it took. */
+  private writeAscii(into: Uint8Array, at: number, text: string): number {
+    for (let i = 0; i < text.length; i++) {
+      into[at + i] = text.charCodeAt(i);
+    }
+    return text.length;
+  }
+
+  /** The character-by-character path, for an alphabet that is not single-byte. */
+  private encodeAsText(buffer: Uint8Array): string {
     let out = '';
     for (let at = 0; at < buffer.length; at += BYTES_PER_BLOCK) {
       const size = Math.min(BYTES_PER_BLOCK, buffer.length - at);
@@ -95,24 +186,6 @@ export class Block85Codec extends BaseCodec {
       }
     }
     return this.delimiters ? OPEN + out + CLOSE : out;
-  }
-
-  decode(encoded: string, options?: DecodeOptions): Buffer {
-    const bytes = this.readBytes(this.undelimit(encoded));
-    const size = options?.size;
-    if (size !== undefined && bytes.length !== size) {
-      throw new BufferSizeError(bytes.length, size);
-    }
-    return Buffer.from(bytes);
-  }
-
-  validate(input: string): boolean {
-    try {
-      this.readBytes(this.undelimit(input));
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   /** Renders a block value as its five characters, most significant first. */
@@ -143,46 +216,46 @@ export class Block85Codec extends BaseCodec {
    */
   private readBytes(body: string): number[] {
     const bytes: number[] = [];
-    let group = '';
+    let held = 0;
+    let value = 0;
+    let groupAt = 0;
 
-    const flushWhole = (): void => {
-      let value = 0;
-      for (const char of group) {
-        const digit = this.valueOf(char);
-        if (digit === undefined) {
-          throw new InvalidCharacterError(char);
+    for (let i = 0; i < body.length; i++) {
+      if (held === 0) {
+        const code = body.charCodeAt(i);
+        if (this.zeroShortcut && code === ZERO_CODE) {
+          bytes.push(0, 0, 0, 0);
+          continue;
         }
-        value = value * 85 + digit;
+        if (this.spaceShortcut && code === SPACE_CODE) {
+          bytes.push(0x20, 0x20, 0x20, 0x20);
+          continue;
+        }
+        groupAt = i;
       }
-      if (value >= BLOCK_LIMIT) {
-        throw new ValueRangeError(group);
+      const digit = this.valueAt(body, i);
+      if (digit < 0) {
+        throw new InvalidCharacterError(body[i]);
       }
-      for (let shift = 24; shift >= 0; shift -= 8) {
-        bytes.push((value / 2 ** shift) & 0xff);
-      }
-      group = '';
-    };
-
-    for (const char of body) {
-      if (group === '' && this.zeroShortcut && char === ZERO_CHAR) {
-        bytes.push(0, 0, 0, 0);
-        continue;
-      }
-      if (group === '' && this.spaceShortcut && char === SPACE_CHAR) {
-        bytes.push(0x20, 0x20, 0x20, 0x20);
-        continue;
-      }
-      if (this.valueOf(char) === undefined) {
-        throw new InvalidCharacterError(char);
-      }
-      group += char;
-      if (group.length === CHARS_PER_BLOCK) {
-        flushWhole();
+      value = value * 85 + digit;
+      held++;
+      if (held === CHARS_PER_BLOCK) {
+        if (value >= BLOCK_LIMIT) {
+          throw new ValueRangeError(body.slice(groupAt, i + 1));
+        }
+        bytes.push(
+          (value / 0x1000000) & 0xff,
+          (value / 0x10000) & 0xff,
+          (value / 0x100) & 0xff,
+          value & 0xff,
+        );
+        held = 0;
+        value = 0;
       }
     }
 
-    if (group.length > 0) {
-      this.readPartial(group, bytes);
+    if (held > 0) {
+      this.readPartial(body.slice(groupAt), bytes);
     }
     return bytes;
   }
@@ -208,12 +281,12 @@ export class Block85Codec extends BaseCodec {
       );
     }
 
-    const top = this.chars[84];
+    const padded = group.padEnd(CHARS_PER_BLOCK, this.chars[84]);
     let value = 0;
-    for (const char of group.padEnd(CHARS_PER_BLOCK, top)) {
-      const digit = this.valueOf(char);
-      if (digit === undefined) {
-        throw new InvalidCharacterError(char);
+    for (let i = 0; i < CHARS_PER_BLOCK; i++) {
+      const digit = this.valueAt(padded, i);
+      if (digit < 0) {
+        throw new InvalidCharacterError(padded[i]);
       }
       value = value * 85 + digit;
     }

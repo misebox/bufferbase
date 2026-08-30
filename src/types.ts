@@ -45,11 +45,33 @@ interface CommonSpec {
    * Defaults to `false`.
    */
   readonly caseInsensitive?: boolean;
+  /**
+   * Extra characters accepted when decoding, each mapped to the alphabet
+   * character it stands for.
+   *
+   * Crockford's Base32 uses `{ I: '1', L: '1', O: '0' }` so that a symbol
+   * written down by hand is read back as the digit it resembles. Encoding
+   * never emits them.
+   */
+  readonly aliases?: Readonly<Record<string, string>>;
+  /**
+   * Characters skipped when decoding, such as the hyphens Crockford's Base32
+   * allows for readability. Encoding never emits them.
+   */
+  readonly ignore?: string;
 }
 
 /** A codec that rewrites the buffer as an integer in base `alphabet.length`. */
 export interface RadixSpec extends CommonSpec {
   readonly algorithm: 'radix';
+  /**
+   * Symbols that extend the alphabet for a trailing check symbol, which
+   * encodes the value modulo `alphabet.length + checkSymbols.length`.
+   *
+   * Crockford's Base32 uses `'*~$=U'`, giving a modulus of 37. When set, every
+   * encoding carries the symbol and every decoding verifies it.
+   */
+  readonly checkSymbols?: string;
 }
 
 /** A codec that regroups the bit stream, as specified by RFC 4648. */

@@ -110,3 +110,18 @@ export class ValueRangeError extends Error {
     this.name = 'ValueRangeError';
   }
 }
+
+/**
+ * Error thrown when a trailing check symbol does not match the value it
+ * follows, which means the string was mistyped or corrupted.
+ */
+export class CheckSymbolError extends Error {
+  /**
+   * @param found - The check symbol present in the input
+   * @param expected - The check symbol the value calls for
+   */
+  constructor(found: string, expected: string) {
+    super(`Check symbol '${found}' does not match the expected '${expected}'`);
+    this.name = 'CheckSymbolError';
+  }
+}

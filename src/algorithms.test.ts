@@ -10,6 +10,7 @@ import {
   encode,
   validate,
   BufferSizeError,
+  CheckSymbolError,
   InvalidCodecError,
   InvalidLengthError,
   NonCanonicalError,
@@ -221,6 +222,121 @@ describe('Ascii85 and Z85', () => {
     expect(encoded).toBe('9jqo^GQ'); // 5 characters for the block, 2 for the byte
     expect(validate(encoded, 'ascii85')).toBe(true);
     expect(validate(encoded.slice(0, 6), 'ascii85')).toBe(false);
+  });
+});
+
+describe("Crockford's Base32", () => {
+  test('reads the symbols a reader is likely to confuse', () => {
+    const encoded = encode(Buffer.from('Hello'), 'base32crockford');
+    expect(encoded).toBe('91JPRV3F');
+    for (const written of [encoded.toLowerCase(), encoded.replaceAll('1', 'I'), encoded.replaceAll('1', 'l')]) {
+      expect([written, decode(written, 'base32crockford').toString()]).toEqual([written, 'Hello']);
+    }
+    const zeros = encode(Buffer.from([0, 0, 5]), 'base32crockford');
+    expect(decode(zeros.replaceAll('0', 'O'), 'base32crockford')).toEqual(Buffer.from([0, 0, 5]));
+  });
+
+  test('ignores hyphens inserted for readability', () => {
+    const encoded = encode(Buffer.from('Hello'), 'base32crockford');
+    expect(decode(`${encoded.slice(0, 3)}-${encoded.slice(3)}`, 'base32crockford').toString()).toBe(
+      'Hello',
+    );
+    expect(validate('-91-JP-RV-3F-', 'base32crockford')).toBe(true);
+  });
+
+  test('encoding emits only the alphabet', () => {
+    for (let n = 0; n < 200; n++) {
+      const encoded = encode(Buffer.from([n, (n * 7) % 256]), 'base32crockford');
+      expect([n, /^[0-9A-HJKMNP-TV-Z]*$/.test(encoded)]).toEqual([n, true]);
+    }
+  });
+
+  test('the check symbol catches a changed character', () => {
+    const encoded = encode(Buffer.from('Hello'), 'base32crockfordcheck');
+    expect(encoded).toBe('91JPRV3FG');
+    expect(decode(encoded, 'base32crockfordcheck').toString()).toBe('Hello');
+
+    for (let at = 0; at < encoded.length - 1; at++) {
+      const other = encoded[at] === '1' ? '2' : '1';
+      const changed = encoded.slice(0, at) + other + encoded.slice(at + 1);
+      expect([at, validate(changed, 'base32crockfordcheck')]).toEqual([at, false]);
+    }
+    expect(validate(`${encoded.slice(0, -1)}9`, 'base32crockfordcheck')).toBe(false);
+    expect(() => decode(`${encoded.slice(0, -1)}9`, 'base32crockfordcheck')).toThrow(
+      CheckSymbolError,
+    );
+  });
+
+  test('the check symbol is read in either case, like the rest', () => {
+    const encoded = encode(Buffer.from('Hello, World!'), 'base32crockfordcheck');
+    expect(decode(encoded.toLowerCase(), 'base32crockfordcheck').toString()).toBe('Hello, World!');
+    const withU = encode(Buffer.from([0x00, 0x24]), 'base32crockfordcheck');
+    expect(withU.slice(-1)).toBe('U');
+    expect(decode(withU.toLowerCase(), 'base32crockfordcheck')).toEqual(Buffer.from([0x00, 0x24]));
+  });
+
+  test('the check symbol uses the five extra symbols for 32 to 36', () => {
+    for (const [value, expected] of [
+      [0x20, '*'],
+      [0x21, '~'],
+      [0x22, '$'],
+      [0x23, '='],
+      [0x24, 'U'],
+    ] as const) {
+      const bytes = Buffer.from([0x00, value]);
+      const encoded = encode(bytes, 'base32crockfordcheck');
+      expect([value, encoded.slice(-1)]).toEqual([value, expected]);
+      expect([value, decode(encoded, 'base32crockfordcheck')]).toEqual([value, bytes]);
+    }
+  });
+
+  test('a checked encoding always carries its symbol', () => {
+    expect(validate('', 'base32crockfordcheck')).toBe(false);
+    expect(encode(Buffer.alloc(0), 'base32crockfordcheck')).toBe('0');
+    expect(decode('0', 'base32crockfordcheck')).toEqual(Buffer.alloc(0));
+  });
+
+  test('every checked string validates exactly when it decodes', () => {
+    const pieces = ['0', '1', 'I', 'O', 'l', '-', 'Z', '*', 'U', '9', 'G'];
+    for (let seed = 0; seed < 500; seed++) {
+      let input = '';
+      for (let n = seed % 7; n > 0; n--) {
+        input += pieces[(seed * 5 + n * 3) % pieces.length];
+      }
+      let decodes = true;
+      try {
+        decode(input, 'base32crockfordcheck');
+      } catch {
+        decodes = false;
+      }
+      expect([input, validate(input, 'base32crockfordcheck')]).toEqual([input, decodes]);
+    }
+  });
+});
+
+describe('aliases and ignored characters', () => {
+  test('an alias must point at a character of the alphabet', () => {
+    expect(() =>
+      createCodec({ alphabet: '01', algorithm: 'radix', aliases: { O: '9' } }),
+    ).toThrow(InvalidCodecError);
+  });
+
+  test('an alias may not already be in the alphabet', () => {
+    expect(() =>
+      createCodec({ alphabet: '012', algorithm: 'radix', aliases: { 2: '0' } }),
+    ).toThrow(InvalidCodecError);
+  });
+
+  test('an ignored character may not also be decodable', () => {
+    expect(() => createCodec({ alphabet: '01', algorithm: 'radix', ignore: '1' })).toThrow(
+      InvalidCodecError,
+    );
+  });
+
+  test('check symbols may not repeat the alphabet', () => {
+    expect(() =>
+      createCodec({ alphabet: '0123456789', algorithm: 'radix', checkSymbols: '9*' }),
+    ).toThrow(InvalidCodecError);
   });
 });
 

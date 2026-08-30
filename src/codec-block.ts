@@ -105,6 +105,45 @@ export class BlockCodec extends BaseCodec {
 
     const bits = this.bitsPerChar;
     const mask = this.chars.length - 1;
+    const codes = this.codes;
+    if (codes === null) {
+      return this.encodeAsText(buffer);
+    }
+
+    const dataChars = Math.ceil((buffer.length * 8) / bits);
+    const total =
+      this.padChar === false
+        ? dataChars
+        : Math.ceil(dataChars / this.charsPerBlock) * this.charsPerBlock;
+    const written = new Uint8Array(total);
+    let at = 0;
+    let acc = 0;
+    let held = 0;
+
+    for (let i = 0; i < buffer.length; i++) {
+      acc = ((acc << 8) | buffer[i]) & 0xffff;
+      held += 8;
+      while (held >= bits) {
+        held -= bits;
+        written[at++] = codes[(acc >>> held) & mask];
+      }
+    }
+    if (held > 0) {
+      written[at++] = codes[(acc << (bits - held)) & mask];
+    }
+    if (this.padChar !== false) {
+      const padCode = this.padChar.charCodeAt(0);
+      while (at < total) {
+        written[at++] = padCode;
+      }
+    }
+    return this.textFrom(written, at);
+  }
+
+  /** The character-by-character path, for an alphabet that is not single-byte. */
+  private encodeAsText(buffer: Uint8Array): string {
+    const bits = this.bitsPerChar;
+    const mask = this.chars.length - 1;
     let out = '';
     let acc = 0;
     let held = 0;
@@ -129,17 +168,17 @@ export class BlockCodec extends BaseCodec {
   }
 
   decode(encoded: string, options?: DecodeOptions): Buffer {
-    const data = this.checkStructure(encoded);
+    const data = this.checkStructure(this.strip(encoded));
     const bits = this.bitsPerChar;
     const bytes = Buffer.alloc(Math.floor((data.length * bits) / 8));
     let at = 0;
     let acc = 0;
     let held = 0;
 
-    for (const char of data) {
-      const value = this.valueOf(char);
-      if (value === undefined) {
-        throw new InvalidCharacterError(char);
+    for (let i = 0; i < data.length; i++) {
+      const value = this.valueAt(data, i);
+      if (value < 0) {
+        throw new InvalidCharacterError(data[i]);
       }
       acc = ((acc << bits) | value) & 0xffff;
       held += bits;
@@ -158,7 +197,7 @@ export class BlockCodec extends BaseCodec {
 
   validate(input: string): boolean {
     try {
-      this.checkStructure(input);
+      this.checkStructure(this.strip(input));
       return true;
     } catch {
       return false;
@@ -201,15 +240,15 @@ export class BlockCodec extends BaseCodec {
       );
     }
 
-    let last: number | undefined;
-    for (const char of data) {
-      last = this.valueOf(char);
-      if (last === undefined) {
-        throw new InvalidCharacterError(char);
+    let last = -1;
+    for (let i = 0; i < data.length; i++) {
+      last = this.valueAt(data, i);
+      if (last < 0) {
+        throw new InvalidCharacterError(data[i]);
       }
     }
 
-    if (this.strict && spare > 0 && last !== undefined && (last & ((1 << spare) - 1)) !== 0) {
+    if (this.strict && spare > 0 && last >= 0 && (last & ((1 << spare) - 1)) !== 0) {
       throw new NonCanonicalError(
         `the final character carries ${spare} spare bits that must be zero`,
       );

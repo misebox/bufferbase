@@ -36,7 +36,12 @@ export const Chars = {
   Ascii85: '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstu',
   /** ZeroMQ Z85 (RFC 32): avoids the quote and backslash characters */
   Z85: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#',
+  /** The five symbols Crockford's Base32 adds for its check symbol, giving a modulus of 37 */
+  CrockfordCheck: '*~$=U',
 } as const;
+
+/** The characters Crockford's Base32 reads as the digit they resemble. */
+const CROCKFORD_ALIASES = { I: '1', L: '1', O: '0' } as const;
 
 /**
  * The encodings this package knows by name.
@@ -64,11 +69,25 @@ export const Bases = {
    * Crockford's Base32, which specifies a notation for numbers rather than for
    * byte streams, so a radix conversion is the right reading of it.
    *
-   * Only the case-insensitivity of the spec is implemented. Decoding does not
-   * yet map `I`/`L` to `1` and `O` to `0`, and the check symbol is not
-   * supported.
+   * Decoding accepts either case, reads `I` and `L` as `1` and `O` as `0`, and
+   * ignores hyphens.
    */
-  base32crockford: { alphabet: Chars.Base32Crockford, algorithm: 'radix', caseInsensitive: true },
+  base32crockford: {
+    alphabet: Chars.Base32Crockford,
+    algorithm: 'radix',
+    caseInsensitive: true,
+    aliases: CROCKFORD_ALIASES,
+    ignore: '-',
+  },
+  /** Crockford's Base32 carrying its trailing check symbol. */
+  base32crockfordcheck: {
+    alphabet: Chars.Base32Crockford,
+    algorithm: 'radix',
+    caseInsensitive: true,
+    aliases: CROCKFORD_ALIASES,
+    ignore: '-',
+    checkSymbols: Chars.CrockfordCheck,
+  },
 
   // Bit-block encoding, RFC 4648.
   base16: { alphabet: Chars.Base16, algorithm: 'block', pad: false, caseInsensitive: true },
@@ -87,9 +106,7 @@ export const Bases = {
   /** ZeroMQ Z85, which has no padding and so encodes whole blocks only. */
   z85: { alphabet: Chars.Z85, algorithm: 'block85', requireFullBlocks: true },
 
-  // Radix conversion over the RFC alphabets, as bufferbase 2 did. Kept so that
-  // data written by that version can be read and migrated:
-  // `convert(old, 'radix64', 'base64')`.
+  // Radix conversion over the RFC alphabets.
   radix16: { alphabet: Chars.Base16, algorithm: 'radix' },
   radix32: { alphabet: Chars.Base32, algorithm: 'radix' },
   radix64: { alphabet: Chars.Base64, algorithm: 'radix' },

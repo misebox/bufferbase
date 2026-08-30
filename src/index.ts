@@ -16,6 +16,7 @@ export type { CodecName } from './codecs.js';
 // Errors
 export {
   BufferSizeError,
+  CheckSymbolError,
   InvalidCharacterError,
   InvalidCodecError,
   InvalidLengthError,
