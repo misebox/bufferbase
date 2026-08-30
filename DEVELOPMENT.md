@@ -15,6 +15,7 @@ bun install
 |---|---|
 | `bun test` | Runs the test suite |
 | `bun run build` | Emits `dist/esm` and `dist/cjs`, then fixes up the dual-package fields |
+| `bun run release <level>` | Versions, publishes and pushes (see below) |
 | `bun run example` | Runs `src/example.ts` against the source |
 | `bun run check:npm-auth` | Fails unless npm has a session |
 
@@ -45,15 +46,14 @@ Do not add attribution trailers to commit messages.
 ## Releasing
 
 ```bash
-bun test
-npm version major            # or minor / patch — commits and tags
-git push --follow-tags
-npm publish                  # builds dist/ via prepublishOnly, then uploads
+bun run release major        # or minor / patch / an explicit version
 ```
 
-`npm publish` opens a browser for two-factor authentication. Publishing is a
-command you run yourself, so there is no token to keep anywhere.
+`bin/release` checks that you are on `main`, that the tree is clean and level
+with `origin/main`, and that the tests pass, then asks before going ahead. It
+bumps the version, publishes, and pushes only after npm has accepted the
+package — so a failed publish leaves the version commit and its tag local, and
+nothing public has changed.
 
-If publishing fails, the commit and tag already exist but npm does not have the
-version. Fix whatever npm objected to and run `npm publish` again — do not bump
-the version a second time.
+`npm publish` opens a browser for two-factor authentication. There is no token
+to keep anywhere.

@@ -26,7 +26,8 @@
     "build:esm": "tsc -p tsconfig.json",
     "prepublishOnly": "bun run build",
     "example": "bun src/example.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "release": "bin/release"
   },
   "devDependencies": {
     "@types/bun": "^1.1.0",

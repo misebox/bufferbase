@@ -1,0 +1,60 @@
+#!/bin/sh
+# Releases a new version.
+#
+#   bin/release major | minor | patch | <version>
+#
+# Nothing leaves the machine until npm has accepted the package: the version
+# commit and its tag are made locally, published, and only then pushed.
+set -e
+
+LEVEL="$1"
+case "$LEVEL" in
+  major|minor|patch) ;;
+  [0-9]*.[0-9]*.[0-9]*) ;;
+  *)
+    echo "usage: bin/release major | minor | patch | <version>" >&2
+    exit 1
+    ;;
+esac
+
+BRANCH=$(git branch --show-current)
+if [ "$BRANCH" != "main" ]; then
+  echo "On '$BRANCH'. Releases are cut from main." >&2
+  exit 1
+fi
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "The working tree has uncommitted changes." >&2
+  git status --short >&2
+  exit 1
+fi
+
+git fetch --quiet origin main
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+  echo "main and origin/main differ. Push or pull first." >&2
+  exit 1
+fi
+
+bun test
+
+CURRENT=$(node -p "require('./package.json').version")
+printf 'Release %s -> %s and publish to npm? [y/N] ' "$CURRENT" "$LEVEL"
+read -r REPLY
+case "$REPLY" in
+  y|Y) ;;
+  *) echo "Cancelled."; exit 1 ;;
+esac
+
+# Commits package.json and creates the tag, both local only.
+npm version "$LEVEL"
+VERSION=$(node -p "require('./package.json').version")
+
+# Builds dist/ through prepublishOnly, then opens a browser for two-factor
+# authentication. If this fails, the commit and tag are still local and the
+# release has not happened.
+npm publish
+
+git push --follow-tags
+
+echo
+echo "Published $VERSION and pushed v$VERSION."
