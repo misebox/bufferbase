@@ -1,6 +1,6 @@
 {
   "name": "bufferbase",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Buffer-to-BaseN encoding: RFC 4648 block encodings, Ascii85/Z85, and Base58-style radix conversion",
   "sideEffects": false,
   "type": "module",
