@@ -54,16 +54,13 @@ Do not add attribution trailers to commit messages.
 
 ## Releasing
 
-Three commands. The one-time password is short-lived, so read it from the
-authenticator immediately before the third.
-
 ```bash
-git push origin main                  # everything to be released must be pushed
-npx semantic-release --dry-run --no-ci   # check the version and the notes
-NPM_CONFIG_OTP=123456 bun run release
+git push origin main                        # everything to be released must be pushed
+NPM_TOKEN=npm_xxx npx semantic-release --dry-run --no-ci   # check the version and the notes
+NPM_TOKEN=npm_xxx bun run release
 ```
 
-`bun run release` then does, in order:
+`bun run release` does, in order:
 
 1. computes the version from the commits since the last tag
 2. writes `CHANGELOG.md`
@@ -76,28 +73,31 @@ NPM_CONFIG_OTP=123456 bun run release
 Never edit `version` in `package.json` by hand. semantic-release computes it
 and overwrites whatever is there.
 
-### Why the one-time password
+### The token
 
-The npm account has `two-factor auth: auth-and-writes`, which asks for a second
-factor at each write rather than only at login, so being logged in is not
-enough to publish. semantic-release cannot prompt, hence the environment
-variable.
+The account requires two-factor authentication for writes, and semantic-release
+cannot answer a prompt, so publishing needs a token that is allowed past it.
+Create one at https://www.npmjs.com/settings/misebox/tokens:
 
-To stop being asked, move the account to two-factor on login only. This costs
-one last password, and afterwards `bun run release` needs none.
+- type: **Granular Access Token**
+- Packages and scopes: **Read and write**, limited to `bufferbase`
+- **Bypass two-factor authentication: enabled**
+- expiration: as short as you are willing to renew
 
-```bash
-npm profile set fa-mode auth-only
-```
+Nothing else will do. A classic publish token still gets asked for a one-time
+password, and `NPM_CONFIG_OTP` is not accepted for this account.
 
-The trade-off is that a leaked `~/.npmrc` could then publish on its own.
+`npm login` writes its own token to `~/.npmrc`, and npm would prefer it over
+`NPM_TOKEN`. `scripts/release.sh` therefore writes a project-local `.npmrc`,
+which outranks it, and deletes it when the release ends. That file is in
+`.gitignore`; do not commit it.
 
-### Why the dry run checks the tag
+### Why the dry run matters
 
 semantic-release finds the previous release by walking git tags, not by asking
 npm. If the tag for the last published version is missing from the remote, it
 decides the next version is `1.0.0` and publishes that over a newer `latest`.
-The dry run shows the version it settled on, which is what makes the mistake
+The dry run prints the version it settled on, which is what makes the mistake
 visible before it ships.
 
 ```bash
