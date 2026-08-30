@@ -54,75 +54,62 @@ Do not add attribution trailers to commit messages.
 
 ## Releasing
 
-semantic-release owns the version number. Never edit `version` in
-`package.json` by hand — the next release is computed from the commits, and a
-hand-edited version is simply overwritten.
-
-### Preflight
+Three commands. The one-time password is short-lived, so read it from the
+authenticator immediately before the third.
 
 ```bash
-git status                          # clean, and on main
-git ls-remote --tags origin         # the previous release must be tagged here
-npm whoami                          # or: npm login
-echo "${GH_TOKEN:-$GITHUB_TOKEN}"   # must be non-empty
-bun test
-```
-
-The tag check matters: semantic-release finds the previous release by walking
-git tags, not by reading npm. If the tag for the last published version is
-missing from the remote, it will decide the next version is `1.0.0` and
-publish that over a newer `latest`.
-
-### Dry run
-
-Prints the version and the release notes. Publishes nothing, tags nothing,
-pushes nothing.
-
-```bash
-npx semantic-release --dry-run --no-ci
-```
-
-### Publish
-
-The npm account has two-factor authentication set to `auth-and-writes`, so
-publishing needs a one-time password. semantic-release cannot prompt for one,
-so pass it in the environment. The code is short-lived — read it immediately
-before running the command.
-
-```bash
+git push origin main                  # everything to be released must be pushed
+npx semantic-release --dry-run --no-ci   # check the version and the notes
 NPM_CONFIG_OTP=123456 bun run release
 ```
 
-That runs, in order:
+`bun run release` then does, in order:
 
-1. computes the version from the commits
+1. computes the version from the commits since the last tag
 2. writes `CHANGELOG.md`
 3. sets `version` in `package.json` and runs `npm publish`
    (`prepublishOnly` builds `dist/` first)
 4. commits `CHANGELOG.md`, `package.json` and `bun.lock` back to `main`, and
-   pushes the new tag
-5. creates the GitHub release
+   pushes the new tag over SSH
+5. creates the GitHub release, using `GH_TOKEN` or `GITHUB_TOKEN`
 
-Step 4 pushes over SSH using the `origin` remote, and step 5 uses `GH_TOKEN` or
-`GITHUB_TOKEN`.
+Never edit `version` in `package.json` by hand. semantic-release computes it
+and overwrites whatever is there.
 
-If you would rather not deal with the one-time password on every release,
-either relax the account setting:
+### Why the one-time password
+
+The npm account has `two-factor auth: auth-and-writes`, which asks for a second
+factor at each write rather than only at login, so being logged in is not
+enough to publish. semantic-release cannot prompt, hence the environment
+variable.
+
+To stop being asked, move the account to two-factor on login only. This costs
+one last password, and afterwards `bun run release` needs none.
 
 ```bash
-npm profile set fa-mode auth-only   # 2FA for login, not for publishing
+npm profile set fa-mode auth-only
 ```
 
-or issue a granular automation token on npmjs.com and set `NPM_TOKEN` for the
-release only. Automation tokens bypass 2FA, which is why they are the usual
-choice for CI — and why an unattended one is worth scoping and rotating.
+The trade-off is that a leaked `~/.npmrc` could then publish on its own.
+
+### Why the dry run checks the tag
+
+semantic-release finds the previous release by walking git tags, not by asking
+npm. If the tag for the last published version is missing from the remote, it
+decides the next version is `1.0.0` and publishes that over a newer `latest`.
+The dry run shows the version it settled on, which is what makes the mistake
+visible before it ships.
+
+```bash
+git ls-remote --tags origin
+```
 
 ### If a release fails partway
 
-A failure after step 3 leaves the version published on npm but the tag and the
-GitHub release missing. Do not re-run `release`: it would try to publish the
-same version again. Tag the released commit by hand and push it, then continue
-from the next change.
+A failure after step 3 leaves the version on npm but no tag and no GitHub
+release. Do not re-run `release`; it would try to publish the same version
+again. Tag the released commit by hand, push it, and carry on from the next
+change.
 
 ```bash
 git tag v3.0.0 <commit> && git push origin v3.0.0
