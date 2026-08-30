@@ -42,15 +42,20 @@ bun test
 
 CURRENT=$(node -p "require('./package.json').version")
 if [ "$LEVEL" = current ]; then
-  printf 'Release %s as it stands and publish to npm? [y/N] ' "$CURRENT"
+  NEXT="$CURRENT"
 else
   NEXT=$(node -e '
     const [major, minor, patch] = require("./package.json").version.split(".").map(Number);
     const next = { major: [major + 1, 0, 0], minor: [major, minor + 1, 0], patch: [major, minor, patch + 1] };
     console.log(next[process.argv[1]].join("."));
   ' "$LEVEL")
-  printf 'Release %s -> %s and publish to npm? [y/N] ' "$CURRENT" "$NEXT"
 fi
+
+echo
+echo "  current  $CURRENT"
+echo "  release  $NEXT"
+echo
+printf 'Publish to npm? [y/N] '
 read -r REPLY
 case "$REPLY" in
   y|Y) ;;
