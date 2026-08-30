@@ -44,7 +44,12 @@ CURRENT=$(node -p "require('./package.json').version")
 if [ "$LEVEL" = current ]; then
   printf 'Release %s as it stands and publish to npm? [y/N] ' "$CURRENT"
 else
-  printf 'Release %s as a %s bump and publish to npm? [y/N] ' "$CURRENT" "$LEVEL"
+  NEXT=$(node -e '
+    const [major, minor, patch] = require("./package.json").version.split(".").map(Number);
+    const next = { major: [major + 1, 0, 0], minor: [major, minor + 1, 0], patch: [major, minor, patch + 1] };
+    console.log(next[process.argv[1]].join("."));
+  ' "$LEVEL")
+  printf 'Release %s -> %s and publish to npm? [y/N] ' "$CURRENT" "$NEXT"
 fi
 read -r REPLY
 case "$REPLY" in
