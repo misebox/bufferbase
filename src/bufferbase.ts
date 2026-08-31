@@ -9,7 +9,6 @@
  * so they keep behaving exactly as they did.
  */
 
-import type { Buffer } from 'node:buffer';
 import type { BufferLike } from './types.js';
 import { RadixCodec } from './codec-radix.js';
 
@@ -31,7 +30,7 @@ export class BufferEncoder {
     return this.codec.encode(buffer);
   }
 
-  decode(encoded: string, bufferSize?: number): Buffer {
+  decode(encoded: string, bufferSize?: number): Uint8Array {
     return this.codec.decode(encoded, bufferSize === undefined ? undefined : { size: bufferSize });
   }
 }

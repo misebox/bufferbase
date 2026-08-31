@@ -1,7 +1,10 @@
 # bufferbase
 
-Buffer-to-BaseN encoding for Node.js and the browser, across three algorithms:
-RFC 4648 bit-block encodings, Ascii85/Z85, and Base58-style radix conversion.
+Bytes-to-BaseN encoding across three algorithms: RFC 4648 bit-block encodings,
+Ascii85/Z85, and Base58-style radix conversion.
+
+Takes a `Uint8Array` and returns one, so it runs anywhere without a polyfill. A
+Node.js `Buffer` is a `Uint8Array`, so it is accepted too.
 
 ## Installation
 
@@ -25,8 +28,10 @@ its algorithm.
 ```typescript
 import { encode } from 'bufferbase';
 
-encode(Buffer.from('fo'), 'base64');  // 'Zm8='  — RFC 4648
-encode(Buffer.from('fo'), 'radix64'); // 'GZv'   — radix conversion
+const fo = new TextEncoder().encode('fo');
+
+encode(fo, 'base64');  // 'Zm8='  — RFC 4648
+encode(fo, 'radix64'); // 'GZv'   — radix conversion
 ```
 
 Only `radix` accepts an alphabet of any length, and only `radix` preserves
@@ -64,8 +69,8 @@ case.
 ```typescript
 import { encode, decode, convert, validate } from 'bufferbase';
 
-encode(Buffer.from('Hello'), 'base58');       // '9Ajdvzr'
-decode('9Ajdvzr', 'base58');                  // Buffer('Hello')
+encode(hello, 'base58');                      // '9Ajdvzr'  (hello is a Uint8Array)
+decode('9Ajdvzr', 'base58');                  // Uint8Array of 'Hello'
 decode('9Ajdvzr', 'base58', { size: 32 });    // padded to 32 bytes
 convert('9Ajdvzr', 'base58', 'base64url');    // through the bytes
 validate('Zm8=', 'base64');                   // true
@@ -79,7 +84,7 @@ succeeds, so the two never disagree.
 ```typescript
 import { Codecs } from 'bufferbase';
 
-Codecs.base64.encode(Buffer.from('fo'));      // 'Zm8='
+Codecs.base64.encode(fo);                     // 'Zm8='
 Codecs.base58.convertTo(Codecs.base64url, '9Ajdvzr');
 ```
 
@@ -106,7 +111,7 @@ either case, reads `I` and `L` as `1` and `O` as `0`, and ignores the hyphens
 that may be inserted for readability. Encoding emits only the alphabet.
 
 ```typescript
-decode('91jprv3f', 'base32crockford');   // Buffer('Hello')
+decode('91jprv3f', 'base32crockford');   // Uint8Array of 'Hello'
 decode('91JP-RV3F', 'base32crockford');  // the same
 decode('9IJPRV3F', 'base32crockford');   // the same, reading I as 1
 ```
@@ -116,7 +121,7 @@ with the alphabet extended by `*~$=U`. Decoding verifies it, so a mistyped
 character is caught rather than decoded into different bytes.
 
 ```typescript
-encode(Buffer.from('Hello'), 'base32crockfordcheck'); // '91JPRV3FG'
+encode(hello, 'base32crockfordcheck');   // '91JPRV3FG'
 validate('91JPRV3XG', 'base32crockfordcheck');        // false
 ```
 
@@ -148,7 +153,7 @@ A trailing partial block leaves spare bits in the final character. RFC 4648
 as the canonical form, so accepting it makes decoding non-injective.
 
 ```typescript
-decode('Zm8=', 'base64'); // Buffer('fo')
+decode('Zm8=', 'base64'); // Uint8Array of 'fo'
 decode('Zm9=', 'base64'); // throws NonCanonicalError — also 'fo'
 ```
 
@@ -166,7 +171,7 @@ The same check rejects lengths that cannot be a whole number of bytes
 
 ```typescript
 encode(buffer, base)              // string
-decode(encoded, base, options?)   // Buffer
+decode(encoded, base, options?)   // Uint8Array
 convert(input, from, to)          // string
 validate(input, base)             // boolean
 createCodec(spec | alphabet)      // ICodec

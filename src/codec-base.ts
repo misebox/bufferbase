@@ -1,6 +1,8 @@
-import { Buffer } from 'node:buffer';
 import type { Algorithm, BufferLike, CodecSpec, DecodeOptions, ICodec } from './types.js';
 import { InvalidCodecError } from './errors.js';
+
+/** Decodes bytes as one character each, which is what the byte-assembly path writes. */
+const LATIN1 = new TextDecoder('latin1');
 
 /** Returns one byte per character, or `null` if the alphabet needs more. */
 function singleByteCodes(alphabet: string): Uint8Array | null {
@@ -26,11 +28,6 @@ function codeTable(charToIndex: ReadonlyMap<string, number>): Int16Array | null 
     table[code] = value;
   }
   return table;
-}
-
-/** Converts a `BufferLike` to a `Buffer` without copying when possible. */
-export function toBuffer(input: BufferLike): Buffer {
-  return Buffer.isBuffer(input) ? input : Buffer.from(input.buffer, input.byteOffset, input.length);
 }
 
 /**
@@ -133,7 +130,7 @@ export abstract class BaseCodec implements ICodec {
 
   /** Reads the first `length` bytes of `written` back as text. */
   protected textFrom(written: Uint8Array, length: number): string {
-    return Buffer.from(written.buffer, written.byteOffset, length).toString('latin1');
+    return LATIN1.decode(written.subarray(0, length));
   }
 
   /** Drops the characters this codec ignores, such as readability hyphens. */
@@ -171,7 +168,7 @@ export abstract class BaseCodec implements ICodec {
   }
 
   abstract encode(buffer: BufferLike): string;
-  abstract decode(encoded: string, options?: DecodeOptions): Buffer;
+  abstract decode(encoded: string, options?: DecodeOptions): Uint8Array;
   abstract validate(input: string): boolean;
 
   /** Decodes with this codec, then re-encodes with `target`. */

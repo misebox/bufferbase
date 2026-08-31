@@ -1,5 +1,4 @@
 import type { BufferLike, CodecSpec, DecodeOptions } from './types.js';
-import type { Buffer } from 'node:buffer';
 import { resolveSpec, type BaseName } from './bases.js';
 import { getCodec } from './codec.js';
 
@@ -39,7 +38,7 @@ export function encode(buffer: BufferLike, base: Base): string {
  * decode('9Ajdvzr', 'base58', { size: 32 });
  * ```
  */
-export function decode(encoded: string, base: Base, options?: DecodeOptions): Buffer {
+export function decode(encoded: string, base: Base, options?: DecodeOptions): Uint8Array {
   return getCodec(resolveSpec(base)).decode(encoded, options);
 }
 

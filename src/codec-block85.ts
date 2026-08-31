@@ -1,6 +1,5 @@
-import { Buffer } from 'node:buffer';
 import type { Block85Spec, BufferLike, DecodeOptions } from './types.js';
-import { BaseCodec, toBuffer } from './codec-base.js';
+import { BaseCodec } from './codec-base.js';
 import {
   BufferSizeError,
   InvalidCharacterError,
@@ -72,8 +71,7 @@ export class Block85Codec extends BaseCodec {
     this.requireFullBlocks = spec.requireFullBlocks ?? false;
   }
 
-  encode(input: BufferLike): string {
-    const buffer = toBuffer(input);
+  encode(buffer: BufferLike): string {
     if (this.requireFullBlocks && buffer.length % BYTES_PER_BLOCK !== 0) {
       throw new InvalidLengthError(
         buffer.length,
@@ -98,7 +96,9 @@ export class Block85Codec extends BaseCodec {
     // with `Math.floor`, because every quotient here still fits in 32 bits.
     const whole = buffer.length - (buffer.length % BYTES_PER_BLOCK);
     for (let from = 0; from < whole; from += BYTES_PER_BLOCK) {
-      const value = buffer.readUInt32BE(from);
+      const value =
+        ((buffer[from] << 24) | (buffer[from + 1] << 16) | (buffer[from + 2] << 8) | buffer[from + 3]) >>>
+        0;
       if (this.zeroShortcut && value === 0) {
         written[at++] = ZERO_CODE;
         continue;
@@ -142,13 +142,13 @@ export class Block85Codec extends BaseCodec {
     return this.textFrom(written, at);
   }
 
-  decode(encoded: string, options?: DecodeOptions): Buffer {
+  decode(encoded: string, options?: DecodeOptions): Uint8Array {
     const bytes = this.readBytes(this.undelimit(this.strip(encoded)));
     const size = options?.size;
     if (size !== undefined && bytes.length !== size) {
       throw new BufferSizeError(bytes.length, size);
     }
-    return Buffer.from(bytes);
+    return Uint8Array.from(bytes);
   }
 
   validate(input: string): boolean {

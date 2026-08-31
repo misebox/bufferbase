@@ -1,11 +1,9 @@
-import { Buffer } from 'node:buffer';
-
 /**
  * Input type accepted by encode functions.
  *
- * Supports both Node.js `Buffer` and standard `Uint8Array` for browser compatibility.
+ * A Node.js `Buffer` is a `Uint8Array`, so both are accepted.
  */
-export type BufferLike = Buffer | Uint8Array;
+export type BufferLike = Uint8Array;
 
 /**
  * How bytes are mapped to characters.
@@ -145,8 +143,8 @@ export interface ICodec {
   /** Encodes a buffer to a base-encoded string. */
   encode(buffer: BufferLike): string;
 
-  /** Decodes a base-encoded string to a buffer. */
-  decode(encoded: string, options?: DecodeOptions): Buffer;
+  /** Decodes a base-encoded string to bytes. */
+  decode(encoded: string, options?: DecodeOptions): Uint8Array;
 
   /** Reports whether `decode` would succeed for this input. */
   validate(input: string): boolean;

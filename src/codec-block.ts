@@ -1,6 +1,5 @@
-import { Buffer } from 'node:buffer';
 import type { BlockSpec, BufferLike, DecodeOptions } from './types.js';
-import { BaseCodec, toBuffer } from './codec-base.js';
+import { BaseCodec } from './codec-base.js';
 import {
   BufferSizeError,
   InvalidCharacterError,
@@ -14,26 +13,60 @@ const RFC_BASE64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234
 const HEX_LOWER = '0123456789abcdef';
 const HEX_UPPER = '0123456789ABCDEF';
 
-/** A Node encoding that produces exactly what this codec would, and whether it needs upper-casing. */
-type NativeEncoder = { readonly encoding: 'base64' | 'base64url' | 'hex'; readonly upper: boolean };
+/** Produces exactly what the generic loop would, but in the runtime's own code. */
+type NativeEncoder = (bytes: Uint8Array) => string;
+
+interface Base64Options {
+  alphabet?: 'base64' | 'base64url';
+  omitPadding?: boolean;
+}
+
+const nativeToBase64 = (Uint8Array.prototype as { toBase64?: (o?: Base64Options) => string })
+  .toBase64;
+const nativeToHex = (Uint8Array.prototype as { toHex?: () => string }).toHex;
+
+/** Node's Buffer when the runtime has one, reached without importing `node:buffer`. */
+const nodeBuffer = (
+  globalThis as {
+    Buffer?: {
+      from(buffer: ArrayBufferLike, offset: number, length: number): { toString(encoding: string): string };
+    };
+  }
+).Buffer;
+
+/** Views the bytes as a Buffer without copying, when Buffer exists. */
+function viaBuffer(encoding: string): NativeEncoder | null {
+  if (nodeBuffer === undefined) {
+    return null;
+  }
+  return (bytes) => nodeBuffer.from(bytes.buffer, bytes.byteOffset, bytes.length).toString(encoding);
+}
 
 /**
- * Finds the Node encoding equivalent to a spec, if there is one.
+ * Finds a built-in encoder equivalent to a spec, if the runtime has one.
  *
- * Node's encoders are 100-250x faster than the loop below and always emit
- * canonical output, so an exact match is handed off. Decoding is never handed
- * off: Node's decoders are lenient, and rejecting non-canonical input is the
- * point of this codec.
+ * These are 100-250x faster than the loop below and always emit canonical
+ * output, so an exact match is handed off. Decoding is never handed off: the
+ * built-in decoders are lenient, and rejecting non-canonical input is the point
+ * of this codec.
  */
 function nativeEncoderFor(alphabet: string, pad: string | false): NativeEncoder | null {
   if (alphabet === RFC_BASE64 && pad === '=') {
-    return { encoding: 'base64', upper: false };
+    return nativeToBase64 === undefined
+      ? viaBuffer('base64')
+      : (bytes) => nativeToBase64.call(bytes);
   }
   if (alphabet === RFC_BASE64URL && pad === false) {
-    return { encoding: 'base64url', upper: false };
+    return nativeToBase64 === undefined
+      ? viaBuffer('base64url')
+      : (bytes) => nativeToBase64.call(bytes, { alphabet: 'base64url', omitPadding: true });
   }
   if (pad === false && (alphabet === HEX_LOWER || alphabet === HEX_UPPER)) {
-    return { encoding: 'hex', upper: alphabet === HEX_UPPER };
+    const lower = nativeToHex === undefined ? viaBuffer('hex') : (bytes: Uint8Array) => nativeToHex.call(bytes);
+    if (lower === null) {
+      return null;
+    }
+    return alphabet === HEX_LOWER ? lower : (bytes) => lower(bytes).toUpperCase();
   }
   return null;
 }
@@ -96,11 +129,9 @@ export class BlockCodec extends BaseCodec {
     this.native = nativeEncoderFor(spec.alphabet, pad);
   }
 
-  encode(input: BufferLike): string {
-    const buffer = toBuffer(input);
+  encode(buffer: BufferLike): string {
     if (this.native !== null) {
-      const encoded = buffer.toString(this.native.encoding);
-      return this.native.upper ? encoded.toUpperCase() : encoded;
+      return this.native(buffer);
     }
 
     const bits = this.bitsPerChar;
@@ -167,10 +198,10 @@ export class BlockCodec extends BaseCodec {
     return out;
   }
 
-  decode(encoded: string, options?: DecodeOptions): Buffer {
+  decode(encoded: string, options?: DecodeOptions): Uint8Array {
     const data = this.checkStructure(this.strip(encoded));
     const bits = this.bitsPerChar;
-    const bytes = Buffer.alloc(Math.floor((data.length * bits) / 8));
+    const bytes = new Uint8Array(Math.floor((data.length * bits) / 8));
     let at = 0;
     let acc = 0;
     let held = 0;

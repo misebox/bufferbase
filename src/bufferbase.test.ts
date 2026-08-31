@@ -2,6 +2,12 @@ import { Chars, BufferEncoder } from './bufferbase.js';
 import { Buffer } from 'node:buffer';
 import { describe, test, expect } from 'bun:test';
 
+const text = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
+const hex = (bytes: Uint8Array): string =>
+  Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+const readI64 = (bytes: Uint8Array): bigint =>
+  new DataView(bytes.buffer, bytes.byteOffset, bytes.length).getBigInt64(0);
+
 describe('BufferEncoder', () => {
   test('encodes and decodes a string correctly with base58chars', () => {
     const encoder = new BufferEncoder(Chars.Base58);
@@ -10,7 +16,7 @@ describe('BufferEncoder', () => {
     const encoded = encoder.encode(buffer);
     const decoded = encoder.decode(encoded);
 
-    expect(decoded.toString('utf8')).toBe('Hello, World!');
+    expect(text(decoded)).toBe('Hello, World!');
   });
 
   test('handles empty buffer correctly', () => {
@@ -20,7 +26,7 @@ describe('BufferEncoder', () => {
     const encoded = encoder.encode(buffer);
     const decoded = encoder.decode(encoded);
 
-    expect(decoded.toString('utf8')).toBe('');
+    expect(text(decoded)).toBe('');
   });
 
   test('handles long buffer correctly', () => {
@@ -30,7 +36,7 @@ describe('BufferEncoder', () => {
     const encoded = encoder.encode(buffer);
     const decoded = encoder.decode(encoded);
 
-    expect(decoded.toString('utf8')).toBe('Hello, World!'.repeat(100));
+    expect(text(decoded)).toBe('Hello, World!'.repeat(100));
   });
 
   test('handles bufferSize argument correctly', () => {
@@ -40,7 +46,7 @@ describe('BufferEncoder', () => {
     const encoded = encoder.encode(buffer);
     const decoded = encoder.decode(encoded, 4);
 
-    expect(decoded.toString('hex')).toBe('00000000');
+    expect(hex(decoded)).toBe('00000000');
   });
 
   test('encode and decode various chars correctly', () => {
@@ -51,7 +57,7 @@ describe('BufferEncoder', () => {
       const encoded = encoder.encode(buffer);
       const decoded = encoder.decode(encoded);
 
-      expect(decoded.toString('utf8')).toBe('Hello, World!');
+      expect(text(decoded)).toBe('Hello, World!');
     }
   });
 
@@ -63,7 +69,7 @@ describe('BufferEncoder', () => {
       buffer.writeBigInt64BE(num);
       const encoded = encoder.encode(buffer);
       const decoded = encoder.decode(encoded, 8);
-      const result = decoded.readBigInt64BE();
+      const result = readI64(decoded);
       expect(result).toBe(num);
     }
   });

@@ -1,6 +1,5 @@
-import { Buffer } from 'node:buffer';
 import type { BufferLike, DecodeOptions, RadixSpec } from './types.js';
-import { BaseCodec, toBuffer } from './codec-base.js';
+import { BaseCodec } from './codec-base.js';
 import {
   BufferSizeError,
   CheckSymbolError,
@@ -67,8 +66,7 @@ export class RadixCodec extends BaseCodec {
     this.checkValues = values;
   }
 
-  encode(input: BufferLike): string {
-    const buffer = toBuffer(input);
+  encode(buffer: BufferLike): string {
     const base = this.chars.length;
     const digits: number[] = [];
 
@@ -99,18 +97,18 @@ export class RadixCodec extends BaseCodec {
     return out;
   }
 
-  decode(encoded: string, options?: DecodeOptions): Buffer {
+  decode(encoded: string, options?: DecodeOptions): Uint8Array {
     const bytes = this.read(this.strip(encoded));
 
     const size = options?.size;
     if (size === undefined) {
-      return Buffer.from(bytes);
+      return Uint8Array.from(bytes);
     }
     if (bytes.length > size) {
       throw new BufferSizeError(bytes.length, size);
     }
-    const padded = Buffer.alloc(size);
-    Buffer.from(bytes).copy(padded, size - bytes.length);
+    const padded = new Uint8Array(size);
+    padded.set(bytes, size - bytes.length);
     return padded;
   }
 

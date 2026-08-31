@@ -19,6 +19,12 @@ import {
   type CodecSpec,
 } from './index.js';
 
+const text = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
+const hex = (bytes: Uint8Array): string =>
+  Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+const readI64 = (bytes: Uint8Array): bigint =>
+  new DataView(bytes.buffer, bytes.byteOffset, bytes.length).getBigInt64(0);
+
 /** The test vectors published in RFC 4648 §10. */
 const RFC_INPUTS = ['', 'f', 'fo', 'foo', 'foob', 'fooba', 'foobar'];
 const RFC_VECTORS = {
@@ -35,7 +41,7 @@ describe('RFC 4648', () => {
     });
 
     test(`${base} decodes the published vectors`, () => {
-      expect(expected.map((s) => decode(s, base as Base).toString())).toEqual(RFC_INPUTS);
+      expect(expected.map((s) => text(decode(s, base as Base)))).toEqual(RFC_INPUTS);
     });
   }
 
@@ -47,7 +53,7 @@ describe('RFC 4648', () => {
   test('hex agrees with Node for every leading byte', () => {
     for (let first = 0; first < 256; first++) {
       const buffer = Buffer.from([first, 0x00, 0x9f]);
-      expect(encode(buffer, 'hex')).toBe(buffer.toString('hex').toUpperCase());
+      expect(encode(buffer, 'hex')).toBe(hex(buffer).toUpperCase());
     }
   });
 
@@ -88,14 +94,14 @@ describe('canonical encodings', () => {
   });
 
   test('the canonical form of the same bytes is accepted', () => {
-    expect(decode('Zm8=', 'base64').toString()).toBe('fo');
-    expect(decode('Zg==', 'base64').toString()).toBe('f');
+    expect(text(decode('Zm8=', 'base64'))).toBe('fo');
+    expect(text(decode('Zg==', 'base64'))).toBe('f');
   });
 
   test('strict: false accepts them, at the cost of injectivity', () => {
     const lenient = createCodec({ alphabet: Chars.Base64, algorithm: 'block', strict: false });
-    expect(lenient.decode('Zm9=').toString()).toBe('fo');
-    expect(lenient.decode('Zm8=').toString()).toBe('fo');
+    expect(text(lenient.decode('Zm9='))).toBe('fo');
+    expect(text(lenient.decode('Zm8='))).toBe('fo');
   });
 
   test('lengths that cannot be whole bytes are rejected', () => {
@@ -128,7 +134,7 @@ describe('canonical encodings', () => {
 
   test('a longer-than-needed Ascii85 tail is rejected', () => {
     const canonical = encode(Buffer.from('ab'), 'ascii85');
-    expect(decode(canonical, 'ascii85').toString()).toBe('ab');
+    expect(text(decode(canonical, 'ascii85'))).toBe('ab');
     expect(validate(canonical.slice(0, -1) + Chars.Ascii85[84], 'ascii85')).toBe(false);
   });
 });
@@ -230,7 +236,7 @@ describe("Crockford's Base32", () => {
     const encoded = encode(Buffer.from('Hello'), 'base32crockford');
     expect(encoded).toBe('91JPRV3F');
     for (const written of [encoded.toLowerCase(), encoded.replaceAll('1', 'I'), encoded.replaceAll('1', 'l')]) {
-      expect([written, decode(written, 'base32crockford').toString()]).toEqual([written, 'Hello']);
+      expect([written, text(decode(written, 'base32crockford'))]).toEqual([written, 'Hello']);
     }
     const zeros = encode(Buffer.from([0, 0, 5]), 'base32crockford');
     expect(decode(zeros.replaceAll('0', 'O'), 'base32crockford')).toEqual(Buffer.from([0, 0, 5]));
@@ -238,7 +244,7 @@ describe("Crockford's Base32", () => {
 
   test('ignores hyphens inserted for readability', () => {
     const encoded = encode(Buffer.from('Hello'), 'base32crockford');
-    expect(decode(`${encoded.slice(0, 3)}-${encoded.slice(3)}`, 'base32crockford').toString()).toBe(
+    expect(text(decode(`${encoded.slice(0, 3)}-${encoded.slice(3)}`, 'base32crockford'))).toBe(
       'Hello',
     );
     expect(validate('-91-JP-RV-3F-', 'base32crockford')).toBe(true);
@@ -254,7 +260,7 @@ describe("Crockford's Base32", () => {
   test('the check symbol catches a changed character', () => {
     const encoded = encode(Buffer.from('Hello'), 'base32crockfordcheck');
     expect(encoded).toBe('91JPRV3FG');
-    expect(decode(encoded, 'base32crockfordcheck').toString()).toBe('Hello');
+    expect(text(decode(encoded, 'base32crockfordcheck'))).toBe('Hello');
 
     for (let at = 0; at < encoded.length - 1; at++) {
       const other = encoded[at] === '1' ? '2' : '1';
@@ -269,7 +275,7 @@ describe("Crockford's Base32", () => {
 
   test('the check symbol is read in either case, like the rest', () => {
     const encoded = encode(Buffer.from('Hello, World!'), 'base32crockfordcheck');
-    expect(decode(encoded.toLowerCase(), 'base32crockfordcheck').toString()).toBe('Hello, World!');
+    expect(text(decode(encoded.toLowerCase(), 'base32crockfordcheck'))).toBe('Hello, World!');
     const withU = encode(Buffer.from([0x00, 0x24]), 'base32crockfordcheck');
     expect(withU.slice(-1)).toBe('U');
     expect(decode(withU.toLowerCase(), 'base32crockfordcheck')).toEqual(Buffer.from([0x00, 0x24]));
@@ -362,14 +368,14 @@ describe('size option', () => {
 
 describe('case insensitivity', () => {
   test('base32 and hex accept either case', () => {
-    expect(decode('mzxw6ytb', 'base32').toString()).toBe('fooba');
-    expect(decode('666f6f', 'hex').toString()).toBe('foo');
+    expect(text(decode('mzxw6ytb', 'base32'))).toBe('fooba');
+    expect(text(decode('666f6f', 'hex'))).toBe('foo');
     expect(validate('mzxw6ytb', 'base32')).toBe(true);
   });
 
   test('base64 stays case sensitive, because its alphabet uses both', () => {
-    expect(decode('Zm9v', 'base64').toString()).toBe('foo');
-    expect(decode('ZM9V', 'base64').toString()).not.toBe('foo');
+    expect(text(decode('Zm9v', 'base64'))).toBe('foo');
+    expect(text(decode('ZM9V', 'base64'))).not.toBe('foo');
   });
 });
 

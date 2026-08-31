@@ -14,12 +14,18 @@ import {
   UnknownBaseError,
 } from './index.js';
 
+const text = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
+const hex = (bytes: Uint8Array): string =>
+  Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+const readI64 = (bytes: Uint8Array): bigint =>
+  new DataView(bytes.buffer, bytes.byteOffset, bytes.length).getBigInt64(0);
+
 describe('Function API', () => {
   test('encode/decode round-trip with base name', () => {
     const buffer = Buffer.from('Hello, World!', 'utf8');
     const encoded = encode(buffer, 'base58');
     const decoded = decode(encoded, 'base58');
-    expect(decoded.toString('utf8')).toBe('Hello, World!');
+    expect(text(decoded)).toBe('Hello, World!');
   });
 
   test('encode/decode with custom character set', () => {
@@ -27,7 +33,7 @@ describe('Function API', () => {
     const buffer = Buffer.from('Test', 'utf8');
     const encoded = encode(buffer, spec);
     const decoded = decode(encoded, spec);
-    expect(decoded.toString('utf8')).toBe('Test');
+    expect(text(decoded)).toBe('Test');
   });
 
   test('a bare alphabet is no longer accepted as a base', () => {
@@ -78,14 +84,14 @@ describe('Codecs object', () => {
     const buffer = Buffer.from('Hello, World!', 'utf8');
     const encoded = Codecs.base58.encode(buffer);
     const decoded = Codecs.base58.decode(encoded);
-    expect(decoded.toString('utf8')).toBe('Hello, World!');
+    expect(text(decoded)).toBe('Hello, World!');
   });
 
   test('Codecs.base64url.encode/decode round-trip', () => {
     const buffer = Buffer.from('Hello, World!', 'utf8');
     const encoded = Codecs.base64url.encode(buffer);
     const decoded = Codecs.base64url.decode(encoded);
-    expect(decoded.toString('utf8')).toBe('Hello, World!');
+    expect(text(decoded)).toBe('Hello, World!');
   });
 
   test('Codecs.base58.convertTo', () => {
@@ -160,7 +166,7 @@ describe('Edge cases', () => {
     const buffer = Buffer.from('Hello, World!'.repeat(100), 'utf8');
     const encoded = encode(buffer, 'base58');
     const decoded = decode(encoded, 'base58');
-    expect(decoded.toString('utf8')).toBe('Hello, World!'.repeat(100));
+    expect(text(decoded)).toBe('Hello, World!'.repeat(100));
   });
 
   test('binary powers from 0 to 63', () => {
@@ -170,7 +176,7 @@ describe('Edge cases', () => {
       buffer.writeBigInt64BE(num);
       const encoded = encode(buffer, 'base58');
       const decoded = decode(encoded, 'base58', { size: 8 });
-      const result = decoded.readBigInt64BE();
+      const result = readI64(decoded);
       expect(result).toBe(num);
     }
   });
@@ -201,7 +207,7 @@ describe('All character sets', () => {
       const buffer = Buffer.from(payload, 'utf8');
       const encoded = encode(buffer, base);
       const decoded = decode(encoded, base);
-      expect(decoded.toString('utf8')).toBe(payload);
+      expect(text(decoded)).toBe(payload);
     });
   }
 });
@@ -297,7 +303,7 @@ describe('Backward compatibility', () => {
     const buffer = Buffer.from('Hello', 'utf8');
     const encoded = encoder.encode(buffer);
     const decoded = encoder.decode(encoded);
-    expect(decoded.toString('utf8')).toBe('Hello');
+    expect(text(decoded)).toBe('Hello');
   });
 
   test('BufferEncoder with bufferSize', async () => {
@@ -306,7 +312,7 @@ describe('Backward compatibility', () => {
     const buffer = Buffer.alloc(0);
     const encoded = encoder.encode(buffer);
     const decoded = encoder.decode(encoded, 4);
-    expect(decoded.toString('hex')).toBe('00000000');
+    expect(hex(decoded)).toBe('00000000');
   });
 
   test('Converter works', async () => {

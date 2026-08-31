@@ -1,7 +1,9 @@
-import { Buffer } from 'node:buffer';
 import { encode, decode, convert, validate, createCodec, Chars, Codecs } from './index.js';
 
-const bytes = Buffer.from('Hello, World!', 'utf8');
+const utf8 = new TextEncoder();
+const text = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
+
+const bytes = utf8.encode('Hello, World!');
 
 // The same bytes under each algorithm.
 console.log('=== Algorithms ===');
@@ -18,11 +20,11 @@ console.log('\n=== Function API ===');
 const base58 = encode(bytes, 'base58');
 const base64url = convert(base58, 'base58', 'base64url');
 console.table({
-  bytes: bytes.toString('utf8'),
+  bytes: text(bytes),
   base58,
   base64url,
   valid: validate(base64url, 'base64url'),
-  decoded: decode(base64url, 'base64url').toString('utf8'),
+  decoded: text(decode(base64url, 'base64url')),
 });
 
 // validate() agrees with decode(): it checks length, padding and canonicality.
@@ -38,7 +40,7 @@ console.log('\n=== Crockford ===');
 const crockford = encode(bytes, 'base32crockfordcheck');
 console.table({
   encoded: crockford,
-  'as typed': decode(`${crockford.slice(0, 4)}-${crockford.slice(4)}`.toLowerCase(), 'base32crockfordcheck').toString('utf8'),
+  'as typed': text(decode(`${crockford.slice(0, 4)}-${crockford.slice(4)}`.toLowerCase(), 'base32crockfordcheck')),
   'one character changed': validate(`${crockford.slice(0, -2)}Z${crockford.slice(-1)}`, 'base32crockfordcheck'),
 });
 
