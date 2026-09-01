@@ -1,9 +1,9 @@
 /**
- * Input type accepted by encode functions.
+ * The byte sequence encode accepts and decode returns.
  *
- * A Node.js `Buffer` is a `Uint8Array`, so both are accepted.
+ * A Node.js `Buffer` is a `Uint8Array`, so it is accepted wherever this is.
  */
-export type BufferLike = Uint8Array;
+export type Bytes = Uint8Array;
 
 /**
  * How bytes are mapped to characters.
@@ -134,14 +134,14 @@ export interface DecodeOptions {
  * `validate(input)` returns `true` exactly when `decode(input)` succeeds.
  */
 export interface ICodec {
-  /** Character set used for encoding. */
-  readonly chars: string;
+  /** Characters used for encoding, ordered by value. */
+  readonly alphabet: string;
 
   /** The algorithm this codec applies to `chars`. */
   readonly algorithm: Algorithm;
 
   /** Encodes a buffer to a base-encoded string. */
-  encode(buffer: BufferLike): string;
+  encode(buffer: Bytes): string;
 
   /** Decodes a base-encoded string to bytes. */
   decode(encoded: string, options?: DecodeOptions): Uint8Array;

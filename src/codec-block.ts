@@ -1,4 +1,4 @@
-import type { BlockSpec, BufferLike, DecodeOptions } from './types.js';
+import type { BlockSpec, Bytes, DecodeOptions } from './types.js';
 import { BaseCodec } from './codec-base.js';
 import {
   BufferSizeError,
@@ -129,13 +129,13 @@ export class BlockCodec extends BaseCodec {
     this.native = nativeEncoderFor(spec.alphabet, pad);
   }
 
-  encode(buffer: BufferLike): string {
+  encode(buffer: Bytes): string {
     if (this.native !== null) {
       return this.native(buffer);
     }
 
     const bits = this.bitsPerChar;
-    const mask = this.chars.length - 1;
+    const mask = this.alphabet.length - 1;
     const codes = this.codes;
     if (codes === null) {
       return this.encodeAsText(buffer);
@@ -174,7 +174,7 @@ export class BlockCodec extends BaseCodec {
   /** The character-by-character path, for an alphabet that is not single-byte. */
   private encodeAsText(buffer: Uint8Array): string {
     const bits = this.bitsPerChar;
-    const mask = this.chars.length - 1;
+    const mask = this.alphabet.length - 1;
     let out = '';
     let acc = 0;
     let held = 0;
@@ -184,11 +184,11 @@ export class BlockCodec extends BaseCodec {
       held += 8;
       while (held >= bits) {
         held -= bits;
-        out += this.chars[(acc >>> held) & mask];
+        out += this.alphabet[(acc >>> held) & mask];
       }
     }
     if (held > 0) {
-      out += this.chars[(acc << (bits - held)) & mask];
+      out += this.alphabet[(acc << (bits - held)) & mask];
     }
     if (this.padChar !== false) {
       while (out.length % this.charsPerBlock !== 0) {

@@ -296,39 +296,12 @@ describe('Uint8Array support', () => {
   });
 });
 
-describe('Backward compatibility', () => {
-  test('BufferEncoder works', async () => {
-    const { BufferEncoder, Chars } = await import('./bufferbase.js');
-    const encoder = new BufferEncoder(Chars.Base58);
-    const buffer = Buffer.from('Hello', 'utf8');
-    const encoded = encoder.encode(buffer);
-    const decoded = encoder.decode(encoded);
-    expect(text(decoded)).toBe('Hello');
-  });
-
-  test('BufferEncoder with bufferSize', async () => {
-    const { BufferEncoder, Chars } = await import('./bufferbase.js');
-    const encoder = new BufferEncoder(Chars.Base58);
-    const buffer = Buffer.alloc(0);
-    const encoded = encoder.encode(buffer);
-    const decoded = encoder.decode(encoded, 4);
-    expect(hex(decoded)).toBe('00000000');
-  });
-
-  test('Converter works', async () => {
-    const { BufferEncoder, Converter, Chars } = await import('./bufferbase.js');
-    const converter = new Converter(Chars.Base58, Chars.Base64);
-    const buffer = Buffer.from('Test', 'utf8');
-    const base58Encoded = new BufferEncoder(Chars.Base58).encode(buffer);
-    const converted = converter.convert(base58Encoded);
-    const expected = new BufferEncoder(Chars.Base64).encode(buffer);
-    expect(converted).toBe(expected);
-  });
-
-  test('Validator works', async () => {
-    const { Validator, Chars } = await import('./bufferbase.js');
-    const validator = new Validator(Chars.Base58);
-    expect(validator.validate('123abc')).toBe(true);
-    expect(validator.validate('0abc')).toBe(false);
+describe('every alphabet round-trips through a radix codec', () => {
+  test('for each entry of Chars', () => {
+    const bytes = new TextEncoder().encode('Hello, World!');
+    for (const [name, alphabet] of Object.entries(Chars)) {
+      const codec = createCodec(alphabet);
+      expect([name, text(codec.decode(codec.encode(bytes)))]).toEqual([name, 'Hello, World!']);
+    }
   });
 });

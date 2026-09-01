@@ -3,7 +3,7 @@ export type {
   Algorithm,
   Block85Spec,
   BlockSpec,
-  BufferLike,
+  Bytes,
   CodecSpec,
   DecodeOptions,
   ICodec,
@@ -26,7 +26,7 @@ export {
 } from './errors.js';
 
 // Codec implementations and factory
-export { Block85Codec, BlockCodec, Codec, RadixCodec, createCodec, getCodec } from './codec.js';
+export { Block85Codec, BlockCodec, RadixCodec, createCodec, getCodec } from './codec.js';
 
 // Character sets, encoding definitions, and lookup helpers
 export { Bases, Chars, isBaseName, resolveSpec } from './bases.js';
@@ -36,6 +36,3 @@ export { convert, decode, encode, validate } from './functions.js';
 
 // Pre-defined codecs (namespaced)
 export { Codecs } from './codecs.js';
-
-// Deprecated exports for backward compatibility
-export { BufferEncoder, Converter, Validator } from './bufferbase.js';

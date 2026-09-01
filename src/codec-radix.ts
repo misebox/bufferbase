@@ -1,4 +1,4 @@
-import type { BufferLike, DecodeOptions, RadixSpec } from './types.js';
+import type { Bytes, DecodeOptions, RadixSpec } from './types.js';
 import { BaseCodec } from './codec-base.js';
 import {
   BufferSizeError,
@@ -66,8 +66,8 @@ export class RadixCodec extends BaseCodec {
     this.checkValues = values;
   }
 
-  encode(buffer: BufferLike): string {
-    const base = this.chars.length;
+  encode(buffer: Bytes): string {
+    const base = this.alphabet.length;
     const digits: number[] = [];
 
     for (const byte of buffer) {
@@ -89,7 +89,7 @@ export class RadixCodec extends BaseCodec {
 
     let out = '';
     for (let i = digits.length - 1; i >= 0; i--) {
-      out += this.chars[digits[i]];
+      out += this.alphabet[digits[i]];
     }
     if (this.checkChars !== null) {
       out += this.checkChars[this.remainderOf(buffer, this.checkChars.length)];
@@ -158,7 +158,7 @@ export class RadixCodec extends BaseCodec {
 
   /** Rewrites the digits of `body` as bytes, most significant first. */
   private toBytes(body: string): number[] {
-    const base = this.chars.length;
+    const base = this.alphabet.length;
     const bytes: number[] = [];
     let leadingZeros = 0;
     let stillLeading = true;

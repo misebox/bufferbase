@@ -55,13 +55,3 @@ export function getCodec(spec: CodecSpec): ICodec {
 export { RadixCodec } from './codec-radix.js';
 export { BlockCodec } from './codec-block.js';
 export { Block85Codec } from './codec-block85.js';
-
-/**
- * @deprecated Use `createCodec({ alphabet, algorithm: 'radix' })`, or
- * `createCodec(alphabet)` for the same thing.
- */
-export class Codec extends RadixCodec {
-  constructor(chars: string) {
-    super({ alphabet: chars, algorithm: 'radix' });
-  }
-}

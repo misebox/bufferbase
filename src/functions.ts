@@ -1,4 +1,4 @@
-import type { BufferLike, CodecSpec, DecodeOptions } from './types.js';
+import type { Bytes, CodecSpec, DecodeOptions } from './types.js';
 import { resolveSpec, type BaseName } from './bases.js';
 import { getCodec } from './codec.js';
 
@@ -17,7 +17,7 @@ export type Base = BaseName | CodecSpec;
  * encode(Uint8Array.of(5), { alphabet: '01', algorithm: 'radix' }); // '101'
  * ```
  */
-export function encode(buffer: BufferLike, base: Base): string {
+export function encode(buffer: Bytes, base: Base): string {
   return getCodec(resolveSpec(base)).encode(buffer);
 }
 

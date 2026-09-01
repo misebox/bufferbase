@@ -1,4 +1,4 @@
-import type { Algorithm, BufferLike, CodecSpec, DecodeOptions, ICodec } from './types.js';
+import type { Algorithm, Bytes, CodecSpec, DecodeOptions, ICodec } from './types.js';
 import { InvalidCodecError } from './errors.js';
 
 /** Decodes bytes as one character each, which is what the byte-assembly path writes. */
@@ -37,8 +37,8 @@ function codeTable(charToIndex: ReadonlyMap<string, number>): Int16Array | null 
  * the alphabet, the character lookup, optional case folding, and `convertTo`.
  */
 export abstract class BaseCodec implements ICodec {
-  /** Character set used for encoding. */
-  readonly chars: string;
+  /** Characters used for encoding, ordered by value. */
+  readonly alphabet: string;
 
   /** The algorithm this codec applies to `chars`. */
   abstract readonly algorithm: Algorithm;
@@ -88,7 +88,7 @@ export abstract class BaseCodec implements ICodec {
       );
     }
 
-    this.chars = alphabet;
+    this.alphabet = alphabet;
     this.strict = strict;
     this.charToIndex = new Map();
 
@@ -167,7 +167,7 @@ export abstract class BaseCodec implements ICodec {
     return code > 0xff ? -1 : table[code];
   }
 
-  abstract encode(buffer: BufferLike): string;
+  abstract encode(buffer: Bytes): string;
   abstract decode(encoded: string, options?: DecodeOptions): Uint8Array;
   abstract validate(input: string): boolean;
 

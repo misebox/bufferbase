@@ -1,4 +1,4 @@
-import type { Block85Spec, BufferLike, DecodeOptions } from './types.js';
+import type { Block85Spec, Bytes, DecodeOptions } from './types.js';
 import { BaseCodec } from './codec-base.js';
 import {
   BufferSizeError,
@@ -71,7 +71,7 @@ export class Block85Codec extends BaseCodec {
     this.requireFullBlocks = spec.requireFullBlocks ?? false;
   }
 
-  encode(buffer: BufferLike): string {
+  encode(buffer: Bytes): string {
     if (this.requireFullBlocks && buffer.length % BYTES_PER_BLOCK !== 0) {
       throw new InvalidLengthError(
         buffer.length,
@@ -193,7 +193,7 @@ export class Block85Codec extends BaseCodec {
     let rest = value;
     const digits: string[] = [];
     for (let i = 0; i < CHARS_PER_BLOCK; i++) {
-      digits.unshift(this.chars[rest % 85]);
+      digits.unshift(this.alphabet[rest % 85]);
       rest = Math.floor(rest / 85);
     }
     return digits.join('');
@@ -281,7 +281,7 @@ export class Block85Codec extends BaseCodec {
       );
     }
 
-    const padded = group.padEnd(CHARS_PER_BLOCK, this.chars[84]);
+    const padded = group.padEnd(CHARS_PER_BLOCK, this.alphabet[84]);
     let value = 0;
     for (let i = 0; i < CHARS_PER_BLOCK; i++) {
       const digit = this.valueAt(padded, i);
